@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Horus - Montaje de la Estación</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="../css/index.css" />
+</head>
+<body class="light-mode">
+  <nav class="nav">
+    <div class="nav-container">
+      <div class="nav-buttons">
+        <a href="../index.html" class="nav-btn">
+          <span class="nav-icon">🏠</span> Inicio
+        </a>
+        <a href="mqtt.html" class="nav-btn">
+          <span class="nav-icon">📡</span> Datos en Vivo
+        </a>
+        <a href="analisis.html" class="nav-btn">
+          <span class="nav-icon">📊</span> Análisis
+        </a>
+        <a href="chatbot.html" class="nav-btn">
+          <span class="nav-icon">🤖</span> Chatbot
+        </a>
+        <a href="montaje.html" class="nav-btn active">
+          <span class="nav-icon">🛠️</span> Montaje
+        </a>
+      </div>
+
+      <div class="nav-right">
+        <label class="theme-switch">
+          <input type="checkbox" class="theme-switch__checkbox">
+          <div class="theme-switch__container">
+            <div class="theme-switch__clouds"></div>
+            <div class="theme-switch__stars-container">
+              <!-- SVG de estrellas (omitido por brevedad en nav) -->
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 55" fill="none"><path d="" fill="currentColor"/></svg>
+            </div>
+            <div class="theme-switch__circle-container">
+              <div class="theme-switch__sun-moon-container">
+                <div class="theme-switch__moon">
+                  <div class="theme-switch__spot"></div>
+                  <div class="theme-switch__spot"></div>
+                  <div class="theme-switch__spot"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </label>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <header>
+      <h1>Montaje: Cómo construir la estación Horus</h1>
+      <p>Guía práctica paso a paso para montar, cablear, configurar y poner en servicio la estación meteorológica.</p>
+    </header>
+
+    <main class="dashboard">
+      <div class="card features">
+        <h2>¿Qué objetivo tiene esta guía?</h2>
+        <p>Explicar de forma clara y reproducible cómo montar la estación Horus: componentes necesarios, conexión eléctrica y de sensores, configuración del firmware (ESP/Arduino), puesta en red vía MQTT, calibración y pruebas. Está pensada para alguien con conocimientos básicos de electrónica y programación embedded.</p>
+      </div>
+
+      <div class="card system-info">
+        <h2>¿Qué componentes necesito?</h2>
+        <ul>
+          <li><strong>Controlador</strong>: ESP32 (recomendado) o ESP8266 / Arduino + módulo Wi-Fi.</li>
+          <li><strong>Sensores</strong>:
+            <ul>
+              <li>Temperatura y humedad: SHT31 / DHT22 (SHT31 recomendado por precisión).</li>
+              <li>Presión atmosférica: BMP388 o BME280 (BME280 incluye humedad).</li>
+              <li>Viento: anemómetro (salida impulsos o analógica) y veleta (potenciómetro o sensor magnético).</li>
+              <li>Precipitación: pluviómetro (taza basculante con interruptor reed).</li>
+              <li>Calidad del aire: sensor PM2.5/PM10 (SDS011, PMS7003 o similares).</li>
+              <li>Nivel de gas (opcional): MQ-135 u otro sensor de gases.</li>
+            </ul>
+          </li>
+          <li><strong>Fuente de alimentación</strong>: 5V/3A o fuente según consumo total; regulator si usas 12V solar/batería.</li>
+          <li><strong>Batería / Energía solar</strong> (opcional): panel solar + controlador de carga + batería de 12V/7Ah según autonomía deseada.</li>
+          <li><strong>Caja/Estación meteorológica</strong>: carcasa IP65 para electrónica, mástil o poste para sensores, ventilación aspirada si es necesario.</li>
+          <li><strong>Elementos mecánicos</strong>: abrazaderas, tornillos inox, junta de silicona, mástil, soportes.</li>
+          <li><strong>Herramientas</strong>: soldador, estaño, multímetro, pelacables, destornilladores, taladro, cinta aislante termo-retráctil.</li>
+        </ul>
+      </div>
+
+      <div class="card quick-access">
+        <h2>¿Qué documentación/archivos de firmware necesitaré?</h2>
+        <ul>
+          <li>Firmware para ESP32 que lea sensores y publique en MQTT (ej. basado en Arduino/PlatformIO o ESPHome).</li>
+          <li>Script de calibración y escalado para anemómetro/veleta y pluviómetro.</li>
+          <li>Credenciales Wi-Fi y configurador de topics MQTT.</li>
+          <li>Fichas técnicas (datasheets) de sensores para tensiones y pines.</li>
+        </ul>
+      </div>
+
+      <div class="card system-info">
+        <h2>¿Cómo se cablea la estación? (Esquema general)</h2>
+        <p>Descripción general: los sensores conectan al microcontrolador (I²C, UART, digital), la alimentación alimenta todo y el micro publica por MQTT.</p>
+
+        <!-- Diagrama SVG simple (esquemático, no pretende sustituir un PCB ni un diagrama profesional) -->
+        <div style="overflow:auto; background:#fff; padding:12px; border-radius:8px;">
+          <svg width="100%" height="220" viewBox="0 0 1000 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Esquema de conexión simple">
+            <!-- ESP32 box -->
+            <rect x="40" y="40" width="220" height="180" rx="8" fill="#f5f7fb" stroke="#333"/>
+            <text x="150" y="70" font-size="16" text-anchor="middle" fill="#111">ESP32</text>
+            <text x="90" y="100" font-size="12" fill="#111">3V3, GND</text>
+            <text x="90" y="120" font-size="12" fill="#111">I2C (SDA/SCL)</text>
+            <text x="90" y="140" font-size="12" fill="#111">UART (RX/TX)</text>
+            <text x="90" y="160" font-size="12" fill="#111">GPIO digitales</text>
+
+            <!-- Sensors -->
+            <rect x="320" y="20" width="200" height="70" rx="6" fill="#fff"/>
+            <text x="420" y="50" font-size="14" text-anchor="middle">BME280 (I²C)</text>
+            <line x1="260" y1="90" x2="320" y2="60" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
+            <text x="285" y="75" font-size="12" fill="#222">SDA / SCL</text>
+
+            <rect x="320" y="110" width="200" height="70" rx="6" fill="#fff"/>
+            <text x="420" y="145" font-size="14" text-anchor="middle">PM sensor (UART)</text>
+            <line x1="260" y1="140" x2="320" y2="145" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
+            <text x="285" y="130" font-size="12" fill="#222">RX / TX</text>
+
+            <rect x="560" y="40" width="340" height="200" rx="8" fill="#f5f7fb" stroke="#333"/>
+            <text x="730" y="70" font-size="14" text-anchor="middle" fill="#111">Anemómetro / Pluviómetro / Veleta</text>
+
+            <!-- Power -->
+            <line x1="150" y1="220" x2="150" y2="280" stroke="#e67e22" stroke-width="4"/>
+            <text x="150" y="295" font-size="12" text-anchor="middle" fill="#111">5V / GND (Fuente)</text>
+
+            <defs>
+              <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#666" />
+              </marker>
+            </defs>
+          </svg>
+        </div>
+
+        <p style="margin-top:8px;">Nota: revisa las tensiones: la mayoría de sensores I²C trabajan a 3.3V; evita alimentar sensores 5V al bus I²C sin conversión. Usa convertidores de nivel si es necesario.</p>
+      </div>
+
+      <div class="card features">
+        <h2>¿Paso a paso: montaje físico?</h2>
+        <ol>
+          <li><strong>Prepara la carcasa:</strong> taladra los orificios para montaje del mástil, sellos y pasacables. Usa prensaestopas para sellado.</li>
+          <li><strong>Instala el microcontrolador:</strong> fija la placa en la carcasa sobre separadores; deja acceso a microUSB o entrada de alimentación.</li>
+          <li><strong>Ubica sensores en soportes adecuados:</strong> anemómetro y veleta en el mástil más alto; pluviómetro en un lugar sin obstrucciones; el sensor de temperatura/ humedad en una garita o pantalla radiaciona ventilada a ~1.5–2m del suelo.</li>
+          <li><strong>Cableado:</strong> lleva cables desde cada sensor hacia la caja. Utiliza conectores rápidos (JST) y protege las soldaduras con tubo termorretráctil.</li>
+          <li><strong>Alimentación:</strong> conecta la fuente a la entrada principal; si usas batería/solar, instala regulador y fusible.</li>
+          <li><strong>Comprueba polaridades y tensiones:</strong> con multímetro verifica 3.3V/5V, GND y continuidad de tierra.</li>
+          <li><strong>Sellado:</strong> aplica sellador en pasacables y junta de la tapa. Asegura ventilación pasiva para sensores sensibles (no hermetizar completamente).</li>
+        </ol>
+      </div>
+
+      <div class="card system-info">
+        <h2>¿Cómo programo el micro para enviar datos por MQTT?</h2>
+        <p>Ejemplo mínimo (esquema): el micro lee sensores (I²C/UART/digital), construye JSON y lo publica en `horus/estacion/lecturas`.</p>
+
+        <h3>Ejemplo (pseudocódigo / snippet Arduino para ESP32)</h3>
+        <pre><code>
+// Conexión WiFi y MQTT
+#include &lt;WiFi.h&gt;
+#include &lt;PubSubClient.h&gt;
+#include &lt;Wire.h&gt;
+// Includes de sensores (BME280, PMS, etc.)
+
+const char* ssid = "TU_SSID";
+const char* pass = "TU_PASS";
+const char* mqtt_server = "broker.tu.dominio";
+const int mqtt_port = 1883;
+const char* topic = "horus/estacion/lecturas";
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+void setup() {
+  Serial.begin(115200);
+  WiFi.begin(ssid, pass);
+  while (WiFi.status() != WL_CONNECTED) delay(500);
+  client.setServer(mqtt_server, mqtt_port);
+  // Init sensores (I2C, UART)
+}
+
+void loop() {
+  if (!client.connected()) {
+    // reconexión MQTT
+  }
+  // leer sensores
+  float temp = obtenerTemperatura();
+  float hum = obtenerHumedad();
+  float pres = obtenerPresion();
+  int pm25 = obtenerPM25();
+  // construir JSON simple
+  String payload = "{\"temp\": " + String(temp) + ", \"hum\": " + String(hum) + ", \"pres\": " + String(pres) + ", \"pm25\": " + String(pm25) + "}";
+  client.publish(topic, payload.c_str());
+  delay(15000); // publicar cada 15s (ajustable)
+}
+        </code></pre>
+
+        <p><strong>Consejo:</strong> usa QoS 1 si tu broker lo soporta para asegurar entrega, y añade timestamps (UTC). Si usas ESPHome, la configuración YAML tiene integraciones para los sensores más comunes y publica automáticamente en MQTT o a Home Assistant.</p>
+      </div>
+
+      <div class="card quick-access">
+        <h2>¿Cómo calibrar los sensores?</h2>
+        <ul>
+          <li><strong>Temperatura / Humedad:</strong> compara con un instrumento de referencia conocido; aplica offset si es sistemático.</li>
+          <li><strong>Presión:</strong> verifica con estaciones oficiales o servicios meteorológicos locales y aplica corrección por altitud.</li>
+          <li><strong>Anemómetro:</strong> cuenta pulsos por segundo y aplica curva de calibración del fabricante (m/s por pulsos/s).</li>
+          <li><strong>Pluviómetro:</strong> cada 'click' corresponde a un volumen conocido (ej. 0.2794 mm por click). Calibra con medición manual de lluvia.</li>
+          <li><strong>PM2.5:</strong> compara con un sensor de referencia o estación cercana; los sensores ópticos necesitan tiempo de calentamiento y ajuste de offset.</li>
+        </ul>
+        <p>Registra las constantes de calibración en tu firmware o en la base de datos para aplicar correcciones en el backend antes del análisis.</p>
+      </div>
+
+      <div class="card system-info">
+        <h2>¿Qué topics / formato MQTT recomiendo?</h2>
+        <p>Formato JSON compacto y topic por dispositivo/estación:</p>
+        <pre><code>
+Topic: horus/estacion/{id}/telemetry
+Payload: {
+  "ts":"2025-11-17T10:12:00Z",
+  "temp": 21.4,
+  "hum": 55.2,
+  "pres": 1013.8,
+  "wind_speed": 3.6,
+  "wind_dir": 245,
+  "rain": 0.0,
+  "pm25": 12
+}
+        </code></pre>
+        <p>Usa un topic separado para eventos (alarma/batería baja) como `horus/estacion/{id}/status`.</p>
+      </div>
+
+      <div class="card features">
+        <h2>¿Qué pruebas debo hacer antes de ponerla en producción?</h2>
+        <ol>
+          <li>Comprobación de energía bajo diferentes condiciones (arranque con batería, desconexión de la red).</li>
+          <li>Verificar estabilidad Wi-Fi y reconexión automática en pérdida de señal.</li>
+          <li>Simular lecturas extremas y comprobar que el backend las recibe y registra.</li>
+          <li>Revisión de integridad de datos (timestamps, zonas horarias, duplicados).</li>
+          <li>Prueba de sellado y resistencia a lluvia y viento (si es posible en laboratorio o con agua controlada).</li>
+        </ol>
+      </div>
+
+      <div class="card system-info">
+        <h2>¿Mantenimiento y checklist periódico?</h2>
+        <ul>
+          <li>Revisión física trimestral: limpieza de sensores, revisado de tornillos y juntas.</li>
+          <li>Calibración anual o según deriva de sensores.</li>
+          <li>Actualizar firmware con seguridad: firma o versión controlada, y respaldos de configuración.</li>
+          <li>Comprobar consumo y salud de la batería cada 3–6 meses si es autónoma.</li>
+        </ul>
+      </div>
+
+      <div class="card quick-access">
+        <h2>Preguntas frecuentes (FAQ)</h2>
+
+        <h3>¿Puedo usar otro microcontrolador distinto al ESP32?</h3>
+        <p>Sí. ESP32 es recomendado por Wi-Fi robusto y potencia, pero puedes usar ESP8266 para proyectos simples o un Arduino con módulo Wi-Fi. Ten en cuenta recursos (RAM, UARTs, I2C) y compatibilidad con bibliotecas.</p>
+
+        <h3>¿Cómo protejo la instalación contra rayos o sobretensiones?</h3>
+        <p>Usa protección contra sobretensiones en la línea de alimentación, fusibles, y toma de tierra adecuada para el mástil. Evita conductores largos sin protección y usa varistores o supresores cuando corresponda.</p>
+
+        <h3>Mi sensor PM muestra valores inestables, ¿por qué?</h3>
+        <p>Los sensores ópticos se ven afectados por humedad, contaminación interna y el tiempo de calentamiento. Aísla la entrada de polvo con filtro, proporciona flujo de aire estable y realiza calibración cruzada.</p>
+      </div>
+
+      <div class="card system-info">
+        <h2>Respaldo: checklist rápido antes del primer despliegue</h2>
+        <ul>
+          <li>Conexiones eléctricas firmes y polares correctas.</li>
+          <li>Sensores asegurados mecánicamente y a la altura correcta.</li>
+          <li>Firmware con Wi-Fi y MQTT configurados (credenciales correctas y broker accesible).</li>
+          <li>Comprobación de topics y formato JSON.</li>
+          <li>Protección climática y sellado correcto.</li>
+        </ul>
+      </div>
+
+      <div class="card features">
+        <h2>Soporte / Recursos adicionales</h2>
+        <p>Si quieres puedo generar:</p>
+        <ul>
+          <li>Diagrama de conexión más detallado en SVG o PDF con pines exactos del ESP32 y sensores que uses.</li>
+          <li>Firmware de ejemplo completo adaptado a tus sensores concretos (ESPHome o Arduino) — dime modelos exactos.</li>
+          <li>Lista de compras (BOM) con enlaces a modelos recomendados.</li>
+        </ul>
+      </div>
+    </main>
+
+    <footer>
+      <p>Horus - Estación Meteorológica Inteligente &copy; 2025</p>
+      <p>Documentación de montaje — Guía generada automáticamente</p>
+    </footer>
+  </div>
+
+  <script src="../js/main.js"></script>
+</body>
+</html>

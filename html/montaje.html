@@ -3,11 +3,62 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Horus — Cómo lo hicimos</title>
+  <title>Horus - Cómo está construida la estación</title>
+
+  <!-- Tus CSS originales -->
   <link rel="stylesheet" href="../css/style.css" />
   <link rel="stylesheet" href="../css/index.css" />
+
+  <!-- Estilos embebidos (solo visuales, compatibles con tu CSS) -->
+  <style>
+    .content-section {
+      max-width: 900px;
+      margin: 40px auto;
+      background: var(--card-bg, #fff3);
+      padding: 30px;
+      border-radius: 15px;
+      backdrop-filter: blur(4px);
+      line-height: 1.6;
+    }
+    .content-section h1, 
+    .content-section h2, 
+    .content-section h3 {
+      margin-top: 25px;
+      margin-bottom: 10px;
+    }
+    .content-section p, 
+    .content-section li {
+      font-size: 1.05rem;
+    }
+    .content-section ul {
+      padding-left: 20px;
+    }
+    .highlight-block {
+      background: var(--card-bg-strong, #ffffff15);
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+    }
+    .sensor-grid {
+      display: grid;
+      gap: 15px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      margin-top: 20px;
+    }
+    .sensor-card {
+      background: var(--card-bg2, #ffffff12);
+      padding: 15px;
+      border-radius: 10px;
+    }
+    .sensor-card h3 {
+      margin-top: 0;
+    }
+  </style>
 </head>
+
 <body class="light-mode">
+
+  <!-- NAV ORIGINAL -->
   <nav class="nav">
     <div class="nav-container">
       <div class="nav-buttons">
@@ -23,18 +74,18 @@
         <a href="chatbot.html" class="nav-btn">
           <span class="nav-icon">🤖</span> Chatbot
         </a>
-        <a href="montaje.html" class="nav-btn active">
-          <span class="nav-icon">🛠️</span> Montaje
-        </a>
       </div>
 
+      <!-- Switch de Galahad -->
       <div class="nav-right">
         <label class="theme-switch">
           <input type="checkbox" class="theme-switch__checkbox">
           <div class="theme-switch__container">
             <div class="theme-switch__clouds"></div>
             <div class="theme-switch__stars-container">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 55" fill="none"><path d="" fill="currentColor"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 55" fill="none">
+                <path d="M135.831 3.00688C135.055 3.85027 134.111 4.29946 133 4.35447C134.111 4.40947 135.055 4.85867 135.831 5.71123C136.607 6.55462 136.996 7.56303 136.996 8.72727C136.996 7.95722 137.172 7.25134 137.525 6.59129C137.886 5.93124 138.372 5.39954 138.98 5.00535C139.598 4.60199 140.268 4.39114 141 4.35447C139.88 4.2903 138.936 3.8503 138.16 3.0069C137.384 2.1635 136.996 1.16425 136.996 0C136.996 1.16425 136.607 2.16348 135.831 3.00688Z" fill="currentColor"/>
+              </svg>
             </div>
             <div class="theme-switch__circle-container">
               <div class="theme-switch__sun-moon-container">
@@ -51,205 +102,114 @@
     </div>
   </nav>
 
-  <div class="container">
-    <header>
-      <h1>Horus — Cómo lo hemos montado</h1>
-      <p>Registro del montaje real de la estación: decisiones, conexiones, integraciones y aprendizajes del despliegue en la terraza.</p>
-    </header>
 
-    <main class="dashboard">
+  <div class="content-section">
 
-      <!-- Proyecto resumen -->
-      <div class="card features">
-        <h2>Resumen del montaje</h2>
-        <p>Esta estación está basada en una <strong>Keyestudio ESP-32 PLUS Development Board</strong> y reúne sensores para temperatura/humedad/presión (BME280), partículas en suspensión (sensor serie de la familia <em>PMS</em>), medición de gas (MQ, modelo no documentado), pluviómetro (módulo tipo "Snow Raindrops Detection"/tipping/analog), veleta con <strong>AS5600</strong> (sensor magnético I²C) y anemómetro con sensor Hall (pulsos). Tiene SD, RTC y Bluetooth. La caja es impresa en 3D y la instalación se fijó sobre una plancha de madera en una terraza extendida. La alimentación proviene de panel solar + batería + regulador.</p>
+    <h1>Cómo construí mi estación meteorológica Horus</h1>
+    <p>
+      Esta es la historia de cómo diseñé, monté y programé mi propia estación meteorológica
+      basada en un ESP32 Keyestudio PLUS. No es un tutorial, sino una descripción completa del
+      proceso, las decisiones que tomé y cómo integré todos los sensores y sistemas de
+      comunicación para que funcione de forma autónoma y fiable.
+    </p>
+
+    <h2>🧠 Microcontrolador principal</h2>
+    <p>El corazón del sistema es una <strong>Keyestudio ESP-32 PLUS Development Board</strong>. Es la pieza clave porque integra:</p>
+    <ul>
+      <li>WiFi y Bluetooth</li>
+      <li>Compatibilidad con tarjeta SD</li>
+      <li>Potencia suficiente para procesar datos de varios sensores simultáneamente</li>
+      <li>Uso directo desde Arduino IDE</li>
+    </ul>
+
+    <h2>🌡️ Sensores utilizados</h2>
+    <p>Cada sensor fue elegido para cubrir un aspecto clave del clima. Así quedó el sistema final:</p>
+
+    <div class="sensor-grid">
+
+      <div class="sensor-card">
+        <h3>BME280</h3>
+        <p>Mide temperatura, humedad y presión. A partir de la presión calculo también la altitud. Es muy estable y confiable.</p>
       </div>
 
-      <!-- Lista de componentes tal cual usados -->
-      <div class="card system-info">
-        <h2>Componentes instalados (tal cual)</h2>
-        <ul>
-          <li>Keyestudio ESP-32 PLUS Development Board</li>
-          <li>BME280 (I²C) — temperatura / humedad / presión / altitud</li>
-          <li>Sensor PM (familia PMS5003 / PMS5003T / PMS6003 / PMST003 — modelo exacto no etiquetado; se trata de un sensor PM de la serie PMS que mide PM2.5 y PM10)</li>
-          <li>Sensor de gas MQ (módulo MQ — modelo exacto desconocido)</li>
-          <li>Módulo de lluvia "Snow Raindrops Detection / Rain Weather Module" (salida digital / analógica según el tablero)</li>
-          <li>AS5600 (sensor magnético para ángulo de la veleta, comunica por I²C)</li>
-          <li>Anemómetro con efecto Hall (salida por pulsos digitales)</li>
-          <li>Modulo SD (SPI) + tarjeta microSD</li>
-          <li>RTC (módulo, si está presente) o uso de NTP como fallback</li>
-          <li>Bluetooth (integrado en ESP32) y comunicación con un Arduino Nano que actúa como controlador/visualizador (OLED en el Nano)</li>
-          <li>Panel solar, controlador de carga y batería (esquema de alimentación integrado)</li>
-        </ul>
+      <div class="sensor-card">
+        <h3>PMSx003 (PM2.5 / PM10)</h3>
+        <p>Utilizo un modelo de la serie PMS5003/PMS6003. Sirve para medir partículas finas y polvo ambiental. Ideal para calidad del aire.</p>
       </div>
 
-      <!-- Mapeo de pines usado -->
-      <div class="card quick-access">
-        <h2>Mapeo de pines que usamos (esp32 Keyestudio)</h2>
-        <p>Estos son los pines que conectamos físicamente en la placa durante el montaje — los indico tal como los cableamos:</p>
-
-        <table style="width:100%; border-collapse:collapse;">
-          <tr><th style="text-align:left">Componente</th><th style="text-align:left">Señal</th><th style="text-align:left">Pin en ESP32</th></tr>
-          <tr><td>BME280</td><td>SDA</td><td>GPIO21</td></tr>
-          <tr><td>BME280</td><td>SCL</td><td>GPIO22</td></tr>
-          <tr><td>AS5600 (veleta)</td><td>SDA / SCL (I²C)</td><td>Compartido en 21 / 22</td></tr>
-          <tr><td>PMS (sensor PM)</td><td>UART (RX/TX)</td><td>Rx = GPIO16, Tx = GPIO17 (Serial2)</td></tr>
-          <tr><td>Anemómetro (Hall)</td><td>Pulsos</td><td>GPIO4 (interrupción)</td></tr>
-          <tr><td>Pluviómetro / Rain</td><td>Analog / Digital</td><td>Analog: GPIO35 (ADC) — Digital: GPIO15</td></tr>
-          <tr><td>MQ (gas)</td><td>Analog</td><td>GPIO34 (ADC)</td></tr>
-          <tr><td>SD card</td><td>MOSI / MISO / SCK / CS</td><td>MOSI=GPIO23 / MISO=GPIO19 / SCK=GPIO18 / CS=GPIO5</td></tr>
-          <tr><td>RTC (si presente)</td><td>I²C</td><td>21 / 22 (I²C)</td></tr>
-          <tr><td>Bluetooth ↔ Arduino Nano</td><td>Serial / Bluetooth</td><td>Usamos Bluetooth nativo para comunicar con el Nano; alternativa UART si necesario</td></tr>
-          <tr><td>Alimentación</td><td>5V / 3.3V / GND</td><td>Vin/5V (lado alimentación) y 3V3 para sensores</td></tr>
-        </table>
-
-        <p><em>Nota:</em> todo GND está común y la alimentación se acondicionó con regulador para 3.3V donde fue necesario.</p>
+      <div class="sensor-card">
+        <h3>Sensor MQ (gas)</h3>
+        <p>No definí modelo exacto, pero cualquier MQ detecta concentraciones relativas de gas. Lo uso como referencia ambiental.</p>
       </div>
 
-      <!-- Esquema orientativo -->
-      <div class="card system-info">
-        <h2>Esquema orientativo (cómo lo cableamos)</h2>
-        <div style="overflow:auto; background:#fff; padding:10px; border-radius:8px;">
-          <svg width="100%" height="220" viewBox="0 0 1000 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Esquema de conexión">
-            <rect x="30" y="20" width="240" height="180" rx="8" fill="#f5f8ff" stroke="#333"/>
-            <text x="150" y="48" font-size="16" text-anchor="middle" fill="#111">ESP32 - Keyestudio</text>
-            <text x="90" y="78" font-size="12">GPIO21 SDA</text>
-            <text x="90" y="98" font-size="12">GPIO22 SCL</text>
-            <text x="90" y="118" font-size="12">GPIO16 RX2</text>
-            <text x="90" y="138" font-size="12">GPIO17 TX2</text>
-            <text x="90" y="158" font-size="12">GPIO4 Anemo</text>
-            <text x="90" y="178" font-size="12">GPIO34 ADC MQ</text>
-
-            <rect x="320" y="18" width="200" height="50" rx="6" fill="#fff" stroke="#888"/>
-            <text x="420" y="48" font-size="12" text-anchor="middle">BME280 (I2C)</text>
-            <line x1="270" y1="78" x2="320" y2="43" stroke="#666" stroke-width="2"/>
-
-            <rect x="320" y="80" width="220" height="60" rx="6" fill="#fff" stroke="#888"/>
-            <text x="430" y="110" font-size="12" text-anchor="middle">PMS (UART)</text>
-            <line x1="270" y1="118" x2="320" y2="110" stroke="#666" stroke-width="2"/>
-
-            <rect x="560" y="20" width="220" height="50" rx="6" fill="#fff" stroke="#888"/>
-            <text x="670" y="48" font-size="12" text-anchor="middle">Anemómetro (Hall)</text>
-            <line x1="270" y1="138" x2="560" y2="45" stroke="#666" stroke-width="2"/>
-
-            <rect x="560" y="90" width="220" height="40" rx="6" fill="#fff" stroke="#888"/>
-            <text x="670" y="115" font-size="12" text-anchor="middle">Pluviómetro / Rain</text>
-            <line x1="270" y1="158" x2="560" y2="110" stroke="#666" stroke-width="2"/>
-
-            <rect x="560" y="140" width="220" height="60" rx="6" fill="#f7fff7" stroke="#444"/>
-            <text x="670" y="168" font-size="12" text-anchor="middle">SD / RTC / Alimentación</text>
-            <line x1="240" y1="178" x2="560" y2="170" stroke="#666" stroke-width="2"/>
-          </svg>
-        </div>
-        <p style="margin-top:8px;">Diagrama orientativo: fíjate en la polaridad y asegúrate que todos los módulos I²C estén a 3.3V.</p>
+      <div class="sensor-card">
+        <h3>Sensor de lluvia</h3>
+        <p>Módulo Snow/Rain por conductividad. No mide litros, pero detecta presencia e intensidad de lluvia.</p>
       </div>
 
-      <!-- Integración de datos real -->
-      <div class="card features">
-        <h2>Flujo real de datos (lo que ocurre en la estación)</h2>
-        <ol>
-          <li>El ESP32 lee BME280 por I²C y recibe el paquete UART del sensor PM por Serial2.</li>
-          <li>El anemómetro genera pulsos; en el firmware contamos pulsos con interrupción y calculamos velocidad.</li>
-          <li>El MQ y el pluviómetro se leen por ADC (34 y 35 respectivamente); la SD almacena logs locales.</li>
-          <li>El ESP32 envía lecturas por Wi-Fi a varios destinos:
-            <ul>
-              <li>Publicación MQTT a <code>broker.hivemq.com:1883</code> en topic <code>horus/estacion/h001/telemetry</code>. (Broker público sin auth)</li>
-              <li>Petición HTTP a ThingSpeak (API key) para series temporales.</li>
-              <li>POST a un webhook (Google Apps Script o IFTTT) que vuelca filas en Google Sheets.</li>
-            </ul>
-          </li>
-          <li>Paralelamente, el ESP32 mantiene una conexión Bluetooth con un Arduino Nano/gestor local — el Nano muestra datos en una OLED y permite enviar comandos a la estación (por ejemplo, petición de lectura inmediata o reset remoto).</li>
-        </ol>
+      <div class="sensor-card">
+        <h3>AS5600 (veleta)</h3>
+        <p>Un sensor magnético capaz de leer la orientación de la veleta con gran precisión. Permite obtener la dirección del viento.</p>
       </div>
 
-      <!-- Firmware / nota de software -->
-      <div class="card system-info">
-        <h2>Firmware y herramientas (cómo lo programamos)</h2>
-        <p>Desarrollado en <strong>Arduino IDE</strong> para ESP32. Puntos clave implementados durante el montaje real:</p>
-        <ul>
-          <li>Uso de <code>Wire.begin(21,22)</code> para I²C y <code>Serial2</code> (RX=16, TX=17) para el PMS.</li>
-          <li>Manejo de interrupciones para contar pulsos del anemómetro (GPIO4).</li>
-          <li>Buffer y parseo del paquete binario del PMS con librería estándar (se ajustó a la variante exacta del PMS disponible en la placa).</li>
-          <li>Retries y almacenamiento en SD si falla la publicación MQTT/HTTP.</li>
-          <li>Envío a HiveMQ sin autenticación; reconexión y backoff implementado para condiciones reales.</li>
-          <li>Subida a ThingSpeak vía HTTP y envío a Google Sheets mediante webhook POST (Apps Script).</li>
-        </ul>
-        <p><em>Nota:</em> en el firmware real se añadieron trampas para lecturas inválidas del MQ y lógica de "calentamiento" del sensor MQ (tiempo hasta que sus lecturas sean fiables).</p>
+      <div class="sensor-card">
+        <h3>Anemómetro (Hall)</h3>
+        <p>Mide la velocidad del viento mediante pulsos. Muy robusto y fácil de interpretar.</p>
       </div>
 
-      <!-- Caja e instalación -->
-      <div class="card quick-access">
-        <h2>Carcasa y montaje físico</h2>
-        <p>La electrónica está dentro de una caja impresa en 3D con prensaestopas para las salidas de cable. La caja se fijó sobre la plancha de madera en la terraza con refuerzos metálicos para evitar vibraciones. Puntos importantes que aplicamos:</p>
-        <ul>
-          <li>Prensaestopas sellados y silicona en las juntas para evitar condensación en días fríos.</li>
-          <li>Entrada de aire para el BME y una toma separada para el tubo de entrada del PM (con malla anti-insectos).</li>
-          <li>Anemómetro y veleta montados en el mástil más alto libre de obstáculos.</li>
-          <li>Pluviómetro con fijación nivelada para que cada "tipping" contabilice correctamente.</li>
-          <li>La SD y la electrónica están sobre separadores para evitar contacto directo con la base impresa y disipar algo de calor.</li>
-        </ul>
-      </div>
+    </div>
 
-      <!-- Calibración y pruebas realizadas -->
-      <div class="card system-info">
-        <h2>Calibración y pruebas que realizamos</h2>
-        <ul>
-          <li><strong>BME280:</strong> medición comparada con un termómetro/calibrador de referencia; aplicamos offset de −0.3°C y +1.5% en humedad en el firmware para alinearlo.</li>
-          <li><strong>PMS:</strong> dejamos 24–48 h de funcionamiento continuo para estabilizar. Comparamos con datos de estación municipal y aplicamos factor multiplicativo leve en PM2.5.</li>
-          <li><strong>Anemómetro:</strong> calibrado contando pulsos con un anemómetro de referencia en campo; 1 pulse/s ≈ 1.2 m/s (ajustado a partir de ensayos).</li>
-          <li><strong>Pluviómetro:</strong> comprobamos que cada pulse corresponde al volumen esperado vertiendo 1 L y contando pulses para calcular mm/pulse.</li>
-          <li><strong>MQ (gas):</strong> periodo de calentamiento de 48 h; tomamos aire ambiente como referencia para establecer un baseline ADC.</li>
-          <li><strong>Pruebas de conexión:</strong> simulamos pérdida de Wi-Fi y caída del broker HiveMQ: las lecturas se guardan en SD y se reenvían al reconectar.</li>
-        </ul>
-      </div>
+    <h2>🔋 Alimentación del sistema</h2>
+    <p>
+      La estación funciona con un sistema compuesto por <strong>panel solar, batería y transformador/regulador</strong>.
+      Esto le da autonomía completa durante el día y también durante la noche gracias al almacenamiento.
+    </p>
 
-      <!-- Problemas encontrados y soluciones -->
-      <div class="card features">
-        <h2>Problemas encontrados y cómo los resolvimos</h2>
-        <ul>
-          <li><strong>Ruido eléctrico en lecturas analógicas (MQ / rain):</strong> añadimos condensadores de desacoplo y cable apantallado corto hasta la caja.</li>
-          <li><strong>Interferencias UART del PMS:</strong> fijamos la baudrate correcta y añadimos checksum/validación del paquete para evitar lecturas corruptas.</li>
-          <li><strong>Condensación interna:</strong> mejoramos ventilación pasiva y añadimos desecante dentro de la caja en temporada húmeda.</li>
-          <li><strong>Picos en alimentación al arrancar el PWM del regulador solar:</strong> colocamos un condensador electrolítico y un fusible rearmable.</li>
-          <li><strong>Problemas de arranque por pines en uso:</strong> reubicamos sensores de pines que afectan el boot del ESP32 (evitamos usar ciertos pines para pullups en arranque).</li>
-        </ul>
-      </div>
+    <h2>📡 Comunicaciones</h2>
 
-      <!-- Lecciones aprendidas y mejoras futuras -->
-      <div class="card system-info">
-        <h2>Lecciones aprendidas y próximas mejoras</h2>
-        <ul>
-          <li>Documentar el modelo exacto del sensor PM y del MQ en el momento de compra facilita mucho la integración; añadiremos una etiqueta dentro de la caja con la versión del sensor.</li>
-          <li>Mejorar la protección del intake del PM con un filtro reemplazable para reducir deriva por polvo.</li>
-          <li>Agregar un pequeño ventilador aspirado para la garita del BME si buscamos lecturas más estables bajo radiación solar.</li>
-          <li>Plan para redundancia del broker: enviar a un broker propio adicional para no depender solo de HiveMQ público.</li>
-        </ul>
-      </div>
+    <h3>Bluetooth → Arduino Nano</h3>
+    <p>
+      La estación se conecta por Bluetooth a un pequeño controlador basado en Arduino Nano, que incluye una pantalla OLED
+      y permite enviar comandos al ESP32.
+    </p>
 
-      <!-- Recursos / archivos relacionados -->
-      <div class="card quick-access">
-        <h2>Archivos y artefactos generados</h2>
-        <ul>
-          <li>Firmwares (Arduino IDE) — build local con los ajustes de pines y calibraciones.</li>
-          <li>CSV de logs guardados en SD durante las primeras 2 semanas.</li>
-          <li>Esquema SVG (orientativo) pegado en el interior de la tapa de la caja.</li>
-          <li>Script Google Apps Script para recibir POST y volcar a Google Sheets (implementado como webhook).</li>
-        </ul>
-        <p>Si quieres que te entregue cualquiera de estos artefactos listos para descargar (firmware .ino, SVG etiquetado o Apps Script), dime cuál y lo genero ya.</p>
-      </div>
+    <h3>MQTT → HiveMQ</h3>
+    <div class="highlight-block">
+      <p><strong>Broker:</strong> broker.hivemq.com</p>
+      <p><strong>Puerto:</strong> 1883</p>
+      <p><strong>Autenticación:</strong> No requiere usuario ni contraseña</p>
+    </div>
+    <p>
+      Publico los datos para poder verlos en tiempo real en la página <strong>mqtt.index</strong> del proyecto.
+    </p>
 
-      <!-- Footer / créditos -->
-      <div class="card system-info">
-        <h2>Créditos y versión</h2>
-        <p>Montaje documentado por el equipo Horus (versión del registro: 2025). Este documento refleja cómo hemos cableado y desplegado la estación en la terraza; no es un tutorial paso-a-paso sino un registro del trabajo real.</p>
-      </div>
+    <h3>WiFi → Thingspeak y Google Sheets</h3>
+    <p>
+      Además, la estación se conecta por WiFi y sube datos automáticamente a Thingspeak y Google Sheets,
+      donde guardo el histórico y genero gráficos de largo plazo.
+    </p>
 
-    </main>
+    <h2>🏗️ Montaje físico</h2>
+    <p>
+      La estación está instalada en una terraza ampliada, fijada sobre una plancha de madera para darle estabilidad.
+      Todo el sistema está protegido dentro de una <strong>caja impresa en 3D</strong>, diseñada para ser desmontable y
+      permitir mantenimiento rápido.
+    </p>
 
-    <footer>
-      <p>Horus - Estación Meteorológica Inteligente &copy; 2025</p>
-      <p>Documento: registro de montaje</p>
-    </footer>
+    <h2>📺 Controlador externo</h2>
+    <p>
+      Como complemento, construí un pequeño controlador con Arduino Nano y una pantalla OLED.
+      Desde ahí puedo consultar datos esenciales y enviar instrucciones al ESP32 por Bluetooth.
+    </p>
+
+    <h2>🎯 Resultado final</h2>
+    <p>
+      El sistema final resultó ser robusto, ampliable y muy estable.  
+      Integra sensores ópticos, magnéticos, mecánicos y ambientales; combina comunicaciones locales y remotas;  
+      y funciona de forma autónoma sin intervención humana.  
+      Es una estación completa hecha desde cero.
+    </p>
+
   </div>
 
   <script src="../js/main.js"></script>

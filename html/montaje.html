@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Horus - Montaje de la Estación</title>
+  <title>Horus - Montaje Personalizado</title>
   <link rel="stylesheet" href="../css/style.css" />
   <link rel="stylesheet" href="../css/index.css" />
 </head>
@@ -34,7 +34,6 @@
           <div class="theme-switch__container">
             <div class="theme-switch__clouds"></div>
             <div class="theme-switch__stars-container">
-              <!-- SVG de estrellas (omitido por brevedad en nav) -->
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 55" fill="none"><path d="" fill="currentColor"/></svg>
             </div>
             <div class="theme-switch__circle-container">
@@ -54,243 +53,421 @@
 
   <div class="container">
     <header>
-      <h1>Montaje: Cómo construir la estación Horus</h1>
-      <p>Guía práctica paso a paso para montar, cablear, configurar y poner en servicio la estación meteorológica.</p>
+      <h1>Montaje personalizado — Horus</h1>
+      <p>Guía concreta para tu Keyestudio ESP-32 PLUS con BME280, sensor de partículas tipo PMS, MQ, pluviómetro, AS5600, anemómetro Hall, SD, RTC y comunicación MQTT / ThingSpeak / Google Sheets.</p>
     </header>
 
     <main class="dashboard">
+
       <div class="card features">
-        <h2>¿Qué objetivo tiene esta guía?</h2>
-        <p>Explicar de forma clara y reproducible cómo montar la estación Horus: componentes necesarios, conexión eléctrica y de sensores, configuración del firmware (ESP/Arduino), puesta en red vía MQTT, calibración y pruebas. Está pensada para alguien con conocimientos básicos de electrónica y programación embedded.</p>
-      </div>
-
-      <div class="card system-info">
-        <h2>¿Qué componentes necesito?</h2>
+        <h2>Resumen del hardware que usas</h2>
         <ul>
-          <li><strong>Controlador</strong>: ESP32 (recomendado) o ESP8266 / Arduino + módulo Wi-Fi.</li>
-          <li><strong>Sensores</strong>:
-            <ul>
-              <li>Temperatura y humedad: SHT31 / DHT22 (SHT31 recomendado por precisión).</li>
-              <li>Presión atmosférica: BMP388 o BME280 (BME280 incluye humedad).</li>
-              <li>Viento: anemómetro (salida impulsos o analógica) y veleta (potenciómetro o sensor magnético).</li>
-              <li>Precipitación: pluviómetro (taza basculante con interruptor reed).</li>
-              <li>Calidad del aire: sensor PM2.5/PM10 (SDS011, PMS7003 o similares).</li>
-              <li>Nivel de gas (opcional): MQ-135 u otro sensor de gases.</li>
-            </ul>
-          </li>
-          <li><strong>Fuente de alimentación</strong>: 5V/3A o fuente según consumo total; regulator si usas 12V solar/batería.</li>
-          <li><strong>Batería / Energía solar</strong> (opcional): panel solar + controlador de carga + batería de 12V/7Ah según autonomía deseada.</li>
-          <li><strong>Caja/Estación meteorológica</strong>: carcasa IP65 para electrónica, mástil o poste para sensores, ventilación aspirada si es necesario.</li>
-          <li><strong>Elementos mecánicos</strong>: abrazaderas, tornillos inox, junta de silicona, mástil, soportes.</li>
-          <li><strong>Herramientas</strong>: soldador, estaño, multímetro, pelacables, destornilladores, taladro, cinta aislante termo-retráctil.</li>
-        </ul>
-      </div>
-
-      <div class="card quick-access">
-        <h2>¿Qué documentación/archivos de firmware necesitaré?</h2>
-        <ul>
-          <li>Firmware para ESP32 que lea sensores y publique en MQTT (ej. basado en Arduino/PlatformIO o ESPHome).</li>
-          <li>Script de calibración y escalado para anemómetro/veleta y pluviómetro.</li>
-          <li>Credenciales Wi-Fi y configurador de topics MQTT.</li>
-          <li>Fichas técnicas (datasheets) de sensores para tensiones y pines.</li>
+          <li><strong>Placa:</strong> Keyestudio ESP-32 PLUS Development Board</li>
+          <li><strong>Sensores:</strong> BME280 (T/H/Pres/Alt), sensor PM (familia PMS5003/PMS6003 o similar), sensor de gas MQ (modelo no especificado), modulito de lluvia (Rain sensor module), AS5600 (sensor magnético para veleta), anemómetro con sensor Hall (pulsos)</li>
+          <li><strong>Extras:</strong> SD card (SPI), RTC (p. ej. DS3231 si lo tienes), Bluetooth, Bluetooth ↔ Arduino Nano controlador, alimentación solar + batería + transformador/regulated</li>
+          <li><strong>Conectividad:</strong> Wi-Fi (ESP32) y MQTT (broker: <code>broker.hivemq.com:1883</code>), ThingSpeak y Google Sheets (via webhook/Apps Script/IFTTT)</li>
         </ul>
       </div>
 
       <div class="card system-info">
-        <h2>¿Cómo se cablea la estación? (Esquema general)</h2>
-        <p>Descripción general: los sensores conectan al microcontrolador (I²C, UART, digital), la alimentación alimenta todo y el micro publica por MQTT.</p>
+        <h2>Mapeo de pines recomendado (Keyestudio ESP-32 PLUS)</h2>
+        <p>Este mapeo es funcional y evita pines que suelen dar problemas en wake/boot. Adapta si tu versión usa otras serigrafías.</p>
 
-        <!-- Diagrama SVG simple (esquemático, no pretende sustituir un PCB ni un diagrama profesional) -->
+        <table style="width:100%; border-collapse:collapse;">
+          <tr><th style="text-align:left">Componente</th><th style="text-align:left">Señal</th><th style="text-align:left">Pin ESP32 (sugerido)</th></tr>
+          <tr><td>BME280</td><td>I²C SDA</td><td>GPIO21 (SDA)</td></tr>
+          <tr><td>BME280</td><td>I²C SCL</td><td>GPIO22 (SCL)</td></tr>
+          <tr><td>AS5600 (veleta)</td><td>I²C SDA / SCL</td><td>Comparte bus I²C (GPIO21 / GPIO22)</td></tr>
+          <tr><td>PMS5003 (PM sensor)</td><td>UART RX/TX</td><td>Hardware Serial 2: RX2=GPIO16, TX2=GPIO17</td></tr>
+          <tr><td>Anemómetro (Hall)</td><td>Pulsos (digital, interrupción)</td><td>GPIO4 (interrupt)</td></tr>
+          <tr><td>Pluviómetro / Rain module</td><td>Digital (or Analog)</td><td>Digital: GPIO15 (o Analógico: GPIO35)</td></tr>
+          <tr><td>MQ (gas)</td><td>Analog</td><td>GPIO34 (ADC1_CH6) — entrada sólo lectura (no DAC)</td></tr>
+          <tr><td>SD card (SPI)</td><td>MOSI / MISO / SCK / CS</td><td>MOSI GPIO23, MISO GPIO19, SCK GPIO18, CS GPIO5</td></tr>
+          <tr><td>RTC (p. ej. DS3231)</td><td>I²C</td><td>Comparte bus I²C (GPIO21 / GPIO22)</td></tr>
+          <tr><td>Bluetooth ↔ Arduino Nano</td><td>Serial</td><td>Opcional: Hardware Serial 1: RX=GPIO9, TX=GPIO10 (si se usa TTL) — o usar BT nativo del ESP32</td></tr>
+          <tr><td>Alimentación</td><td>5V / 3.3V / GND</td><td>Vin/5V (según tu fuente) y 3V3 pin para sensores a 3.3V, GND común</td></tr>
+        </table>
+
+        <p><strong>Notas:</strong> Muchos módulos I²C (BME280, AS5600, RTC) pueden compartir bus. Asegúrate de que todos funcionen a 3.3V. El MQ suele requerir calentamiento y puede necesitar divisor/condicionamiento.</p>
+      </div>
+
+      <div class="card features">
+        <h2>Esquema básico (esquemático orientativo)</h2>
         <div style="overflow:auto; background:#fff; padding:12px; border-radius:8px;">
-          <svg width="100%" height="220" viewBox="0 0 1000 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Esquema de conexión simple">
-            <!-- ESP32 box -->
-            <rect x="40" y="40" width="220" height="180" rx="8" fill="#f5f7fb" stroke="#333"/>
-            <text x="150" y="70" font-size="16" text-anchor="middle" fill="#111">ESP32</text>
-            <text x="90" y="100" font-size="12" fill="#111">3V3, GND</text>
-            <text x="90" y="120" font-size="12" fill="#111">I2C (SDA/SCL)</text>
-            <text x="90" y="140" font-size="12" fill="#111">UART (RX/TX)</text>
-            <text x="90" y="160" font-size="12" fill="#111">GPIO digitales</text>
+          <!-- Simple SVG esquemático -->
+          <svg width="100%" height="280" viewBox="0 0 1000 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Esquema de conexión">
+            <rect x="30" y="30" width="240" height="220" rx="8" fill="#f7fbff" stroke="#444"/>
+            <text x="150" y="60" font-size="16" text-anchor="middle" fill="#111">ESP-32 (Keyestudio)</text>
+            <text x="90" y="94" font-size="12">GPIO21 SDA</text>
+            <text x="90" y="112" font-size="12">GPIO22 SCL</text>
+            <text x="90" y="130" font-size="12">GPIO16 RX2</text>
+            <text x="90" y="148" font-size="12">GPIO17 TX2</text>
+            <text x="90" y="166" font-size="12">GPIO4 Anemo</text>
+            <text x="90" y="184" font-size="12">GPIO34 ADC-MQ</text>
+            <text x="90" y="202" font-size="12">GPIO35 ADC-Rain</text>
 
-            <!-- Sensors -->
-            <rect x="320" y="20" width="200" height="70" rx="6" fill="#fff"/>
-            <text x="420" y="50" font-size="14" text-anchor="middle">BME280 (I²C)</text>
-            <line x1="260" y1="90" x2="320" y2="60" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
-            <text x="285" y="75" font-size="12" fill="#222">SDA / SCL</text>
+            <rect x="320" y="15" width="160" height="60" rx="6" fill="#fff" stroke="#888"/>
+            <text x="400" y="45" font-size="12" text-anchor="middle">BME280 (I2C)</text>
+            <line x1="270" y1="95" x2="320" y2="45" stroke="#666" stroke-width="2" marker-end="url(#arr)"/>
 
-            <rect x="320" y="110" width="200" height="70" rx="6" fill="#fff"/>
-            <text x="420" y="145" font-size="14" text-anchor="middle">PM sensor (UART)</text>
-            <line x1="260" y1="140" x2="320" y2="145" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
-            <text x="285" y="130" font-size="12" fill="#222">RX / TX</text>
+            <rect x="320" y="95" width="160" height="60" rx="6" fill="#fff" stroke="#888"/>
+            <text x="400" y="125" font-size="12" text-anchor="middle">AS5600 (I2C)</text>
+            <line x1="270" y1="115" x2="320" y2="125" stroke="#666" stroke-width="2" marker-end="url(#arr)"/>
 
-            <rect x="560" y="40" width="340" height="200" rx="8" fill="#f5f7fb" stroke="#333"/>
-            <text x="730" y="70" font-size="14" text-anchor="middle" fill="#111">Anemómetro / Pluviómetro / Veleta</text>
+            <rect x="320" y="175" width="200" height="80" rx="6" fill="#fff" stroke="#888"/>
+            <text x="420" y="205" font-size="12" text-anchor="middle">PMS5003 (UART)</text>
+            <line x1="270" y1="145" x2="320" y2="205" stroke="#666" stroke-width="2" marker-end="url(#arr)"/>
 
-            <!-- Power -->
-            <line x1="150" y1="220" x2="150" y2="280" stroke="#e67e22" stroke-width="4"/>
-            <text x="150" y="295" font-size="12" text-anchor="middle" fill="#111">5V / GND (Fuente)</text>
+            <rect x="560" y="30" width="200" height="60" rx="6" fill="#fff" stroke="#888"/>
+            <text x="660" y="60" font-size="12" text-anchor="middle">Anemómetro (Hall)</text>
+            <line x1="270" y1="165" x2="560" y2="60" stroke="#666" stroke-width="2" marker-end="url(#arr)"/>
+
+            <rect x="560" y="110" width="200" height="60" rx="6" fill="#fff" stroke="#888"/>
+            <text x="660" y="140" font-size="12" text-anchor="middle">Pluviómetro / Rain</text>
+            <line x1="270" y1="185" x2="560" y2="140" stroke="#666" stroke-width="2" marker-end="url(#arr)"/>
+
+            <rect x="560" y="190" width="200" height="60" rx="6" fill="#fff" stroke="#888"/>
+            <text x="660" y="220" font-size="12" text-anchor="middle">MQ Gas (Analog)</text>
+            <line x1="270" y1="205" x2="560" y2="220" stroke="#666" stroke-width="2" marker-end="url(#arr)"/>
+
+            <rect x="760" y="30" width="200" height="240" rx="8" fill="#f7fff7" stroke="#444"/>
+            <text x="860" y="60" font-size="14" text-anchor="middle">Alimentación / SD / RTC</text>
+            <text x="860" y="84" font-size="12" text-anchor="middle">5V / 3.3V / GND</text>
+            <text x="860" y="102" font-size="12" text-anchor="middle">SD SPI (23/19/18/5)</text>
+            <text x="860" y="120" font-size="12" text-anchor="middle">RTC I2C (21/22)</text>
 
             <defs>
-              <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <marker id="arr" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
                 <path d="M 0 0 L 10 5 L 0 10 z" fill="#666" />
               </marker>
             </defs>
           </svg>
         </div>
-
-        <p style="margin-top:8px;">Nota: revisa las tensiones: la mayoría de sensores I²C trabajan a 3.3V; evita alimentar sensores 5V al bus I²C sin conversión. Usa convertidores de nivel si es necesario.</p>
-      </div>
-
-      <div class="card features">
-        <h2>¿Paso a paso: montaje físico?</h2>
-        <ol>
-          <li><strong>Prepara la carcasa:</strong> taladra los orificios para montaje del mástil, sellos y pasacables. Usa prensaestopas para sellado.</li>
-          <li><strong>Instala el microcontrolador:</strong> fija la placa en la carcasa sobre separadores; deja acceso a microUSB o entrada de alimentación.</li>
-          <li><strong>Ubica sensores en soportes adecuados:</strong> anemómetro y veleta en el mástil más alto; pluviómetro en un lugar sin obstrucciones; el sensor de temperatura/ humedad en una garita o pantalla radiaciona ventilada a ~1.5–2m del suelo.</li>
-          <li><strong>Cableado:</strong> lleva cables desde cada sensor hacia la caja. Utiliza conectores rápidos (JST) y protege las soldaduras con tubo termorretráctil.</li>
-          <li><strong>Alimentación:</strong> conecta la fuente a la entrada principal; si usas batería/solar, instala regulador y fusible.</li>
-          <li><strong>Comprueba polaridades y tensiones:</strong> con multímetro verifica 3.3V/5V, GND y continuidad de tierra.</li>
-          <li><strong>Sellado:</strong> aplica sellador en pasacables y junta de la tapa. Asegura ventilación pasiva para sensores sensibles (no hermetizar completamente).</li>
-        </ol>
+        <p style="margin-top:8px;"><em>Este diagrama es orientativo; antes de soldar o encintar siempre verifica con multímetro y datasheets.</em></p>
       </div>
 
       <div class="card system-info">
-        <h2>¿Cómo programo el micro para enviar datos por MQTT?</h2>
-        <p>Ejemplo mínimo (esquema): el micro lee sensores (I²C/UART/digital), construye JSON y lo publica en `horus/estacion/lecturas`.</p>
-
-        <h3>Ejemplo (pseudocódigo / snippet Arduino para ESP32)</h3>
-        <pre><code>
-// Conexión WiFi y MQTT
-#include &lt;WiFi.h&gt;
-#include &lt;PubSubClient.h&gt;
-#include &lt;Wire.h&gt;
-// Includes de sensores (BME280, PMS, etc.)
-
-const char* ssid = "TU_SSID";
-const char* pass = "TU_PASS";
-const char* mqtt_server = "broker.tu.dominio";
-const int mqtt_port = 1883;
-const char* topic = "horus/estacion/lecturas";
-
-WiFiClient espClient;
-PubSubClient client(espClient);
-
-void setup() {
-  Serial.begin(115200);
-  WiFi.begin(ssid, pass);
-  while (WiFi.status() != WL_CONNECTED) delay(500);
-  client.setServer(mqtt_server, mqtt_port);
-  // Init sensores (I2C, UART)
-}
-
-void loop() {
-  if (!client.connected()) {
-    // reconexión MQTT
-  }
-  // leer sensores
-  float temp = obtenerTemperatura();
-  float hum = obtenerHumedad();
-  float pres = obtenerPresion();
-  int pm25 = obtenerPM25();
-  // construir JSON simple
-  String payload = "{\"temp\": " + String(temp) + ", \"hum\": " + String(hum) + ", \"pres\": " + String(pres) + ", \"pm25\": " + String(pm25) + "}";
-  client.publish(topic, payload.c_str());
-  delay(15000); // publicar cada 15s (ajustable)
-}
-        </code></pre>
-
-        <p><strong>Consejo:</strong> usa QoS 1 si tu broker lo soporta para asegurar entrega, y añade timestamps (UTC). Si usas ESPHome, la configuración YAML tiene integraciones para los sensores más comunes y publica automáticamente en MQTT o a Home Assistant.</p>
-      </div>
-
-      <div class="card quick-access">
-        <h2>¿Cómo calibrar los sensores?</h2>
+        <h2>MQTT / servicios — configuración y topics</h2>
+        <p>Broker público que usas:</p>
         <ul>
-          <li><strong>Temperatura / Humedad:</strong> compara con un instrumento de referencia conocido; aplica offset si es sistemático.</li>
-          <li><strong>Presión:</strong> verifica con estaciones oficiales o servicios meteorológicos locales y aplica corrección por altitud.</li>
-          <li><strong>Anemómetro:</strong> cuenta pulsos por segundo y aplica curva de calibración del fabricante (m/s por pulsos/s).</li>
-          <li><strong>Pluviómetro:</strong> cada 'click' corresponde a un volumen conocido (ej. 0.2794 mm por click). Calibra con medición manual de lluvia.</li>
-          <li><strong>PM2.5:</strong> compara con un sensor de referencia o estación cercana; los sensores ópticos necesitan tiempo de calentamiento y ajuste de offset.</li>
+          <li><strong>Broker:</strong> <code>broker.hivemq.com</code></li>
+          <li><strong>Puerto:</strong> 1883 (sin usuario/contraseña)</li>
         </ul>
-        <p>Registra las constantes de calibración en tu firmware o en la base de datos para aplicar correcciones en el backend antes del análisis.</p>
-      </div>
 
-      <div class="card system-info">
-        <h2>¿Qué topics / formato MQTT recomiendo?</h2>
-        <p>Formato JSON compacto y topic por dispositivo/estación:</p>
+        <h3>Topics recomendados</h3>
+        <p>Usa un topic con id de estación y payload JSON.</p>
         <pre><code>
 Topic: horus/estacion/{id}/telemetry
-Payload: {
+Payload JSON:
+{
   "ts":"2025-11-17T10:12:00Z",
+  "id":"h001",
   "temp": 21.4,
   "hum": 55.2,
   "pres": 1013.8,
+  "alt": 32.4,
   "wind_speed": 3.6,
   "wind_dir": 245,
-  "rain": 0.0,
-  "pm25": 12
+  "rain_mm": 0.0,
+  "pm25": 12,
+  "pm10": 18,
+  "gas_raw": 512
 }
         </code></pre>
-        <p>Usa un topic separado para eventos (alarma/batería baja) como `horus/estacion/{id}/status`.</p>
+
+        <p><strong>ThingSpeak:</strong> usa la API de ThingSpeak para enviar serie de lecturas por HTTP (requiere API Key).<br>
+        <strong>Google Sheets:</strong> recomiendo usar un Webhook → Google Apps Script o IFTTT para recibir POST y volcar en Sheets.</p>
       </div>
 
       <div class="card features">
-        <h2>¿Qué pruebas debo hacer antes de ponerla en producción?</h2>
-        <ol>
-          <li>Comprobación de energía bajo diferentes condiciones (arranque con batería, desconexión de la red).</li>
-          <li>Verificar estabilidad Wi-Fi y reconexión automática en pérdida de señal.</li>
-          <li>Simular lecturas extremas y comprobar que el backend las recibe y registra.</li>
-          <li>Revisión de integridad de datos (timestamps, zonas horarias, duplicados).</li>
-          <li>Prueba de sellado y resistencia a lluvia y viento (si es posible en laboratorio o con agua controlada).</li>
-        </ol>
+        <h2>Ejemplo de firmware (Arduino IDE) — ESP32</h2>
+        <p>Este ejemplo es funcional como plantilla: requiere instalar librerías BME280 (Adafruit_BME280 o similar), SoftwareSerial no es necesario (usar Serial2), PubSubClient para MQTT, HTTPClient para ThingSpeak y SD &amp; SPIFFS para SD. Ajusta pins y API keys según tu instalación.</p>
+
+        <pre><code>
+// --- Librerías (instalar desde Library Manager) ---
+#include &lt;WiFi.h&gt;
+#include &lt;PubSubClient.h&gt;
+#include &lt;Wire.h&gt;
+#include &lt;Adafruit_Sensor.h&gt;
+#include &lt;Adafruit_BME280.h&gt;
+#include &lt;HardwareSerial.h&gt;
+#include &lt;SPI.h&gt;
+#include &lt;SD.h&gt;
+#include &lt;HTTPClient.h&gt;
+// Si tienes RTC DS3231: #include &lt;RTClib.h&gt;
+
+// --- Configuración WiFi / MQTT / ThingSpeak ---
+const char* ssid = "TU_SSID";
+const char* password = "TU_PASS";
+const char* mqtt_server = "broker.hivemq.com";
+const int mqtt_port = 1883;
+const char* mqtt_topic = "horus/estacion/h001/telemetry";
+
+const char* thingspeak_api_key = "TU_THINGSPEAK_WRITE_KEY"; // opcional
+
+WiFiClient espClient;
+PubSubClient mqttClient(espClient);
+HardwareSerial PMserial(2); // Serial2 -> RX2/TX2 (GPIO16,GPIO17)
+
+Adafruit_BME280 bme; // I2C
+// RTC si procede
+// RTC_DS3231 rtc;
+
+const int SD_CS = 5; // pin CS SD
+const int PIN_ANEMO = 4; // pulso anemómetro
+volatile unsigned long anemoPulses = 0;
+unsigned long lastAnemoCalc = 0;
+float wind_speed = 0.0;
+
+void IRAM_ATTR onAnemoPulse() {
+  anemoPulses++;
+}
+
+void setup() {
+  Serial.begin(115200);
+  Wire.begin(21,22); // SDA, SCL
+
+  // BME init
+  if (!bme.begin(0x76)) {
+    Serial.println("No BME280 detectado en 0x76");
+  }
+
+  // PM sensor init (PMS -> Serial2)
+  PMserial.begin(9600, SERIAL_8N1, 16, 17); // RX2=16, TX2=17
+
+  // SD init
+  if (!SD.begin(SD_CS)) {
+    Serial.println("Fallo inicializando SD");
+  } else {
+    Serial.println("SD inicializada");
+  }
+
+  // WiFi y MQTT
+  WiFi.begin(ssid, password);
+  Serial.print("Conectando WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500); Serial.print(".");
+  }
+  Serial.println(" conectado");
+  mqttClient.setServer(mqtt_server, mqtt_port);
+
+  // Interrupción anemómetro
+  pinMode(PIN_ANEMO, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(PIN_ANEMO), onAnemoPulse, FALLING);
+
+  lastAnemoCalc = millis();
+}
+
+void loop() {
+  // Reconexión MQTT
+  if (!mqttClient.connected()) {
+    reconnectMQTT();
+  }
+  mqttClient.loop();
+
+  // Lecturas BME
+  float temp = bme.readTemperature();
+  float hum = bme.readHumidity();
+  float pres = bme.readPressure() / 100.0F;
+  float altitude = bme.readAltitude(1013.25); // presión a nivel del mar por defecto
+
+  // PM sensor: lectura simple (ejemplo: leer buffer y parsear según tu librería PMS)
+  int pm25 = -1;
+  int pm10 = -1;
+  if (PMserial.available()) {
+    // parsear paquete PMS --- aquí debes usar parseador específico
+    // ejemplo simplificado pseudo:
+    // pm25 = ...; pm10 = ...;
+  }
+
+  // Anemómetro — calcular cada periodo (ej. 5s)
+  if (millis() - lastAnemoCalc >= 5000) {
+    noInterrupts();
+    unsigned long pulses = anemoPulses;
+    anemoPulses = 0;
+    interrupts();
+    // Ejemplo: convertir pulses en m/s según tu anemómetro
+    // supongamos 1 pulse/s = 1.2 m/s (depende del sensor)
+    wind_speed = (pulses / 5.0) * 1.2;
+    lastAnemoCalc = millis();
+  }
+
+  // Rain sensor analog/digital (ejemplo ADC en GPIO35)
+  int rainAnalog = analogRead(35);
+  float rain_mm = convertirRain(rainAnalog); // implementa según tu pluviómetro
+
+  // MQ gas (raw ADC)
+  int gasRaw = analogRead(34);
+
+  // JSON payload
+  String payload = "{";
+  payload += "\"ts\":\"" + getISOtime() + "\",";
+  payload += "\"id\":\"h001\",";
+  payload += "\"temp\":" + String(temp,1) + ",";
+  payload += "\"hum\":" + String(hum,1) + ",";
+  payload += "\"pres\":" + String(pres,1) + ",";
+  payload += "\"alt\":" + String(altitude,1) + ",";
+  payload += "\"wind_speed\":" + String(wind_speed,2) + ",";
+  payload += "\"rain_mm\":" + String(rain_mm,2) + ",";
+  payload += "\"pm25\":" + String(pm25) + ",";
+  payload += "\"pm10\":" + String(pm10) + ",";
+  payload += "\"gas_raw\":" + String(gasRaw);
+  payload += "}";
+
+  // Publicar MQTT
+  mqttClient.publish(mqtt_topic, payload.c_str());
+
+  // Subir a ThingSpeak (ejemplo mínimo, usa HTTPClient)
+  if (String(thingspeak_api_key) != "") {
+    sendToThingSpeak(temp, hum, pres, pm25);
+  }
+
+  // Guardar en SD
+  if (SD) {
+    File f = SD.open("/log.csv", FILE_APPEND);
+    if (f) {
+      f.println(payload);
+      f.close();
+    }
+  }
+
+  delay(15000); // ajustar frecuencia de muestreo
+}
+
+void reconnectMQTT() {
+  while (!mqttClient.connected()) {
+    if (mqttClient.connect("horus_esp32")) {
+      // ok
+    } else {
+      delay(2000);
+    }
+  }
+}
+
+String getISOtime() {
+  // Si tienes RTC, lee y formatea a ISO; si no, usa millis() o NTP
+  // placeholder:
+  return "2025-11-17T10:12:00Z";
+}
+
+float convertirRain(int analog) {
+  // convierte lectura analógica del módulo rain a mm según tu calibración
+  return 0.0;
+}
+
+void sendToThingSpeak(float t, float h, float p, int pm25) {
+  String url = String("http://api.thingspeak.com/update?api_key=") + thingspeak_api_key;
+  url += "&field1=" + String(t) + "&field2=" + String(h) + "&field3=" + String(p) + "&field4=" + String(pm25);
+  HTTPClient http;
+  http.begin(url);
+  int code = http.GET();
+  http.end();
+}
+        </code></pre>
+
+        <p><strong>Personaliza:</strong> el parseo del PMS depende del modelo (PMS5003, PMS7003, etc.). Usa librería <code>PMS</code> o código de parsing para paquete binario. Para Google Sheets conecta con un webhook: IFTTT o un endpoint de Google Apps Script que acepte POST JSON y lo vuelque a Sheets.</p>
       </div>
 
       <div class="card system-info">
-        <h2>¿Mantenimiento y checklist periódico?</h2>
+        <h2>Notas específicas y adaptaciones para tus módulos</h2>
         <ul>
-          <li>Revisión física trimestral: limpieza de sensores, revisado de tornillos y juntas.</li>
-          <li>Calibración anual o según deriva de sensores.</li>
-          <li>Actualizar firmware con seguridad: firma o versión controlada, y respaldos de configuración.</li>
-          <li>Comprobar consumo y salud de la batería cada 3–6 meses si es autónoma.</li>
+          <li><strong>PMS5003/PMS6003/etc.</strong> envía datos por UART en un paquete binario; usa Serial2 y una librería de parsing (p. ej. <code>PMS.h</code>) para extraer PM1.0/2.5/10.</li>
+          <li><strong>AS5600 (veleta)</strong> es un sensor magnético I²C que devuelve ángulo en 0–4095; convierte a grados (ángulo * 360 / 4096) y mapea a dirección meteorológica (0 = N, etc.).</li>
+          <li><strong>Anemómetro Hall</strong> requiere contar pulsos. Calibra pulsos→m/s con la curva del fabricante o comparando con anemómetro de referencia.</li>
+          <li><strong>MQ</strong> necesita tiempo de calentamiento (24–48 h) y lectura de referencia; su valor ADC es aproximado y requiere calibración y/o circuitería adicional para R<sub>L</sub>.</li>
+          <li><strong>Rain module</strong> algunos dan salida digital (contacto) y otros analógica; el pluviómetro de taza basculante normalmente genera impulsos (cada basculada = volumen X → mm). Tu módulo "Snow Raindrops Detection" puede dar señal digital/analógica: verifica si es "tipping bucket" o resistivo.</li>
+          <li><strong>SD</strong> usa nivel lógico 3.3V y la interfaz SPI propuesta (CS GPIO5). Evita conflictos con otros periféricos SPI.</li>
         </ul>
       </div>
 
       <div class="card quick-access">
-        <h2>Preguntas frecuentes (FAQ)</h2>
-
-        <h3>¿Puedo usar otro microcontrolador distinto al ESP32?</h3>
-        <p>Sí. ESP32 es recomendado por Wi-Fi robusto y potencia, pero puedes usar ESP8266 para proyectos simples o un Arduino con módulo Wi-Fi. Ten en cuenta recursos (RAM, UARTs, I2C) y compatibilidad con bibliotecas.</p>
-
-        <h3>¿Cómo protejo la instalación contra rayos o sobretensiones?</h3>
-        <p>Usa protección contra sobretensiones en la línea de alimentación, fusibles, y toma de tierra adecuada para el mástil. Evita conductores largos sin protección y usa varistores o supresores cuando corresponda.</p>
-
-        <h3>Mi sensor PM muestra valores inestables, ¿por qué?</h3>
-        <p>Los sensores ópticos se ven afectados por humedad, contaminación interna y el tiempo de calentamiento. Aísla la entrada de polvo con filtro, proporciona flujo de aire estable y realiza calibración cruzada.</p>
+        <h2>Cómo integrar Google Sheets (opción simple)</h2>
+        <ol>
+          <li>Crear un Google Apps Script en un Google Sheet que reciba peticiones POST y escriba filas.</li>
+          <li>Publicar el script como web app (ejecución: "Me", acceso: "Cualquiera, incluso anónimo" si no quieres auth).</li>
+          <li>Desde ESP32 hacer POST con HTTPClient al endpoint con JSON.</li>
+        </ol>
+        <p>Alternativa: IFTTT Webhook → Google Sheets (más sencillo pero menos control).</p>
       </div>
 
       <div class="card system-info">
-        <h2>Respaldo: checklist rápido antes del primer despliegue</h2>
+        <h2>Calibración rápida (resumen)</h2>
         <ul>
-          <li>Conexiones eléctricas firmes y polares correctas.</li>
-          <li>Sensores asegurados mecánicamente y a la altura correcta.</li>
-          <li>Firmware con Wi-Fi y MQTT configurados (credenciales correctas y broker accesible).</li>
-          <li>Comprobación de topics y formato JSON.</li>
-          <li>Protección climática y sellado correcto.</li>
+          <li><strong>BME280:</strong> comparar con estación local o termómetro calibrado; aplicar offset de +/−0.5°C si es constante.</li>
+          <li><strong>PMS:</strong> dejar 24–48 h de estabilización; compara con estación de referencia y calcula offset multiplicativo si hace falta.</li>
+          <li><strong>Anemómetro:</strong> calibrar en campo con tabla de fabricante o comparador.</li>
+          <li><strong>Pluviómetro:</strong> cada pulso = X mm (según modelo). Mide manualmente 1 L en contenedor y cuenta pulsos para calcular coeficiente.</li>
+          <li><strong>MQ:</strong> calibrar con aire limpio y luego con gas de referencia si es posible.</li>
         </ul>
       </div>
 
       <div class="card features">
-        <h2>Soporte / Recursos adicionales</h2>
-        <p>Si quieres puedo generar:</p>
+        <h2>Pruebas antes del despliegue</h2>
         <ul>
-          <li>Diagrama de conexión más detallado en SVG o PDF con pines exactos del ESP32 y sensores que uses.</li>
-          <li>Firmware de ejemplo completo adaptado a tus sensores concretos (ESPHome o Arduino) — dime modelos exactos.</li>
-          <li>Lista de compras (BOM) con enlaces a modelos recomendados.</li>
+          <li>Verificar que el ESP32 puede conectarse a Wi-Fi y publicar en broker HiveMQ.</li>
+          <li>Comprobar que las lecturas del PMS llegan y se parsean correctamente.</li>
+          <li>Probar SD: crear/leer archivo, gestionar errores.</li>
+          <li>Probar RTC y timestamps en payloads (si no hay RTC, considera NTP al arrancar si tienes conexión Wi-Fi).</li>
+          <li>Comprobar comportamiento con batería y panel solar: medir corrientes y voltajes en carga máxima y nocturna.</li>
         </ul>
       </div>
+
+      <div class="card system-info">
+        <h2>Checklist final para colocar en terraza (3D box)</h2>
+        <ul>
+          <li>Todas las soldaduras protegidas con funda termorretráctil y pegamento o silicona donde pase cable.</li>
+          <li>Tierra común entre batería, regulador y electrónica.</li>
+          <li>Entrada de cables por prensaestopas y sellada para evitar condensación.</li>
+          <li>Sensores críticos (BME, PM intake) con pequeñas protecciones/mallas para polvo pero que permitan flujo de aire.</li>
+          <li>Fijación mecánica del mástil a la plancha de madera, con refuerzo anticorrosión.</li>
+        </ul>
+      </div>
+
+      <div class="card quick-access">
+        <h2>Preguntas frecuentes específicas (respuestas rápidas)</h2>
+
+        <h3>¿Dónde conecto la SD y la RTC si ambas usan SPI / I²C?</h3>
+        <p>La RTC y los sensores I²C comparten I²C (GPIO21/22). La SD usa SPI (GPIO23/19/18/5 para MOSI/MISO/SCK/CS). Usa CS dedicado y evita que otros usos SPI interfieran.</p>
+
+        <h3>¿Cómo se comunica con el Arduino Nano?</h3>
+        <p>Si el Nano tiene Bluetooth (p.ej. módulo HC-05), el ESP32 puede usar Bluetooth nativo para emparejar y enviar comandos; alternativa: UART físico entre ESP32 y Nano (nivel TTL) si están en la misma caja.</p>
+
+        <h3>¿Qué pasa si el broker HiveMQ cae?</h3>
+        <p>HT: HiveMQ público puede ser inestable; el firmware intenta reconectar. Guarda en SD si no hay conexión y sincroniza cuando vuelva.</p>
+      </div>
+
+      <div class="card system-info">
+        <h2>Lista de compras (BOM básica)</h2>
+        <ul>
+          <li>Keyestudio ESP-32 PLUS Development Board</li>
+          <li>BME280 I²C (versión 3.3V)</li>
+          <li>Sensor PM (p. ej. PMS5003 o PMS7003 según disponibilidad)</li>
+          <li>MQ-135 (o el MQ que tengas)</li>
+          <li>Pluviómetro / Rain sensor module (ver modelo exacto)</li>
+          <li>AS5600 breakout</li>
+          <li>Anemómetro con salida Hall</li>
+          <li>SD card module (3.3V) + microSD</li>
+          <li>RTC DS3231 (recomendado por precisión)</li>
+          <li>Panel solar, controlador de carga y batería (según consumo)</li>
+          <li>Materiales mecánicos: mástil, abrazaderas, prensaestopas</li>
+        </ul>
+      </div>
+
+      <div class="card features">
+        <h2>Siguientes entregables que puedo generar para ti</h2>
+        <ul>
+          <li>Firmware completo adaptado a los IDs de tu estación (ESP32 — Arduino IDE) con parseo PMS correcto si me confirmas el modelo exacto del PM sensor.</li>
+          <li>SVG de conexión con pines y etiquetado para imprimir y pegar dentro de la caja.</li>
+          <li>Script Google Apps Script para volcar datos a Google Sheets desde POST (listo para publicar).</li>
+          <li>Instrucciones de calibración paso a paso para anemómetro y pluviómetro.</li>
+        </ul>
+      </div>
+
     </main>
 
     <footer>
       <p>Horus - Estación Meteorológica Inteligente &copy; 2025</p>
-      <p>Documentación de montaje — Guía generada automáticamente</p>
+      <p>Guía personalizada generada automáticamente</p>
     </footer>
   </div>
 

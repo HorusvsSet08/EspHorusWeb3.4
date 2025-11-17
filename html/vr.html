@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>HORUS STATION - VISUALIZACIÓN VR</title>
+  
+  <!-- Cargar A-Frame 1.4.2 desde CDN -->
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  
+  <!-- Carga MQTT.js local -->
+  <script src="../js/mqtt.js"></script>
+  
+  <style>
+    :root {
+      --primary: #00eaff;
+      --primary-glow: #00ffff33;
+      --dark-bg: #000a1a;
+      --card-bg: #1d3a5d;
+      --text: #f0f0f0;
+      --text-secondary: #e0e0e0;
+      --border-radius: 12px;
+      --transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+      --shadow: 0 6px 16px rgba(0, 10, 30, 0.35);
+      --inner-shadow: inset 0 3px 10px rgba(0, 5, 20, 0.5);
+      --hover-scale: 1.02;
+    }
+    
+    * {
+      box-sizing: border-box;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, var(--dark-bg), #000510);
+      color: var(--text);
+      height: 100vh;
+      position: relative;
+      cursor: default;
+    }
+    
+    /* Eliminar completamente cualquier elemento residual de A-Frame */
+    .a-enter-vr, .a-canvas, .a-loader, .a-enter-ar, .a-fullscreen, .a-no-cursor, .a-cursor {
+      display: none !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+      visibility: hidden !important;
+    }
+    
+    /* Indicador de conexión */
+    #connection-status {
+      position: fixed;
+      top: 15px;
+      left: 15px;
+      z-index: 1000;
+      padding: 8px 12px;
+      background: rgba(0, 15, 40, 0.85);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(0, 234, 255, 0.3);
+      backdrop-filter: blur(5px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+    
+    .led {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #f00;
+      box-shadow: 0 0 6px rgba(255, 0, 0, 0.7);
+      transition: var(--transition);
+      position: relative;
+    }
+    
+    .led.connected {
+      background: #0f0;
+      box-shadow: 0 0 6px rgba(0, 255, 0, 0.7);
+    }
+    
+    #connection-text {
+      color: white;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+    
+    /* Loader de conexión */
+    .loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--dark-bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+    
+    .loader-spinner {
+      width: 55px;
+      height: 55px;
+      border: 4px solid rgba(0, 234, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: var(--primary);
+      animation: spin 1s ease-in-out infinite;
+      margin-bottom: 20px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .loader-text {
+      color: var(--primary);
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-shadow: 0 0 8px var(--primary-glow);
+    }
+    
+    /* Pantalla de inicio */
+    #splash-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #000a1a, #000510);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+    }
+    
+    /* Botón de inicio de VR */
+    #vr-start-button {
+      background: linear-gradient(135deg, #00eaff, #0077ff);
+      color: #000;
+      border: none;
+      border-radius: 50px;
+      padding: 15px 30px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(0, 234, 255, 0.3);
+      transition: all 0.3s ease;
+      margin-top: 30px;
+      text-shadow: 0 1px 1px rgba(0,0,0,0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    #vr-start-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: 0.6s;
+    }
+    
+    #vr-start-button:hover::before {
+      left: 100%;
+    }
+    
+    #vr-start-button:hover {
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 0 30px rgba(0, 234, 255, 0.5);
+      background: linear-gradient(135deg, #00fffe, #0099ff);
+    }
+    
+    #vr-start-button:active {
+      transform: translateY(1px);
+    }
+    
+    /* Mensaje de información */
+    .info-message {
+      background: rgba(0, 30, 60, 0.7);
+      color: #a0a0a0;
+      padding: 15px;
+      border-radius: 12px;
+      max-width: 80%;
+      margin-top: 20px;
+      text-align: center;
+      font-size: 16px;
+      line-height: 1.4;
+      border: 1px solid rgba(0, 234, 255, 0.2);
+    }
+    
+    .info-message strong {
+      color: var(--primary);
+    }
+    
+    /* Efecto de brillo en los datos */
+    .data-glow {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 8px;
+      background: radial-gradient(circle, var(--primary), transparent 70%);
+      opacity: 0.1;
+      pointer-events: none;
+      animation: pulse 3s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 0.1; }
+      50% { opacity: 0.2; }
+      100% { opacity: 0.1; }
+    }
+    
+    /* Estilos para el fondo estelar */
+    .star {
+      position: absolute;
+      background-color: white;
+      border-radius: 50%;
+      animation: twinkle 6s infinite;
+    }
+    
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.2; }
+      50% { opacity: 1; }
+    }
+    
+    /* Efecto de neblina */
+    .fog {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to bottom, transparent, rgba(0, 10, 30, 0.7));
+      pointer-events: none;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <!-- Pantalla de inicio -->
+  <div id="splash-screen">
+    <h2 style="color: var(--primary); text-shadow: 0 0 10px var(--primary-glow);">Bienvenido a la Experiencia VR</h2>
+    <p>Visualización en tiempo real de los datos meteorológicos de la estación Horus</p>
+    <button id="vr-start-button">Iniciar Experiencia VR</button>
+    <div class="info-message">
+      <strong>Nota:</strong> Gira tu cuerpo 360° para ver todos los datos en la banda circular alrededor de ti.
+    </div>
+  </div>
+
+  <!-- Indicador de conexión -->
+  <div id="connection-status">
+    <span class="led"></span>
+    <span id="connection-text">Conectando...</span>
+  </div>
+
+  <!-- Escena 3D -->
+  <a-scene embedded style="width: 100%; height: 100vh;" 
+           vr-mode-ui="enabled: false"
+           loading-screen="enabled: false"
+           background="color: #000a1a">
+    
+    <!-- Sistema de partículas para el fondo estelar -->
+    <a-entity id="starsystem">
+      <!-- Generado dinámicamente por JavaScript -->
+    </a-entity>
+    
+    <!-- Cámara -->
+    <a-entity id="camera-rig" position="0 1.6 0">
+      <a-entity id="camera" camera="fov: 85; active: true" look-controls>
+        <a-cursor 
+          raycaster="objects: .data-card" 
+          color="#00eaff" 
+          opacity="0.5"
+          radiusInner="0.01"
+          radiusOuter="0.02">
+        </a-cursor>
+      </a-entity>
+    </a-entity>
+    
+    <!-- Panel de datos en BANDA CIRCULAR ÚNICA -->
+    <a-entity id="dashboard">
+      <!-- BANDA CIRCULAR ÚNICA - 10 elementos distribuidos uniformemente en un círculo -->
+      
+      <!-- Temperatura - 0° (frente) -->
+      <a-entity position="0 2.3 3.5" rotation="0 180 0" class="data-card">
+        <a-entity>
+          <!-- Efecto de brillo -->
+          <a-plane position="0 0 -0.05" width="1.8" height="1.2" color="#003366" opacity="0.8" transparent="true"></a-plane>
+          <a-plane position="0 0 -0.04" width="1.7" height="1.1" color="#004488" opacity="0.7" transparent="true"></a-plane>
+          <a-plane position="0 0 -0.03" width="1.6" height="1.0" color="#0055aa" opacity="0.6" transparent="true"></a-plane>
+          
+          <!-- Borde iluminado -->
+          <a-plane position="0 0 -0.02" width="1.5" height="0.9" color="#0066cc" opacity="0.5" transparent="true"></a-plane>
+          <a-ring position="0 0 -0.01" radius-inner="0.7" radius-outer="0.75" rotation="-90 0 0" color="#00eaff" opacity="0.7"></a-ring>
+          
+          <!-- Datos -->
+          <a-text value="TEMPERATURA" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.3" position="0 0.2 0.1"></a-text>
+          <a-text id="temp-value" value="25.5" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.5" position="0 -0.2 0.1"></a-text>
+          <a-text value="ºC" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.3" position="0 -0.5 0.1"></a-text>
+        </a-entity>
+      </a-entity>
+      
+      <!-- Humedad - 36° -->
+      <a-entity position="2.05 2.3 2.84" rotation="0 216 0" class="data-card">
+        <a-entity>
+          <!-- Efecto de brillo -->
+          <a-plane position="0 0 -0.05" width="1.8" height="1.2" color="#002244" opacity="0.8" transparent="true"></a-plane>
+          <a-plane position="0 0 -0.04" width="1.7" height="1.1" color="#003366" opacity="0.7" transparent="true"></a-plane>
+          <a-plane position="0 0 -0.03" width="1.6" height="1.0" color="#004488" opacity="0.6" transparent="true"></a-plane>
+          
+          <!-- Borde iluminado -->
+          <a-plane position="0 0 -0.02" width="1.5" height="0.9" color="#0055aa" opacity="0.5" transparent="true"></a-plane>
+          <a-ring position="0 0 -0.01" radius-inner="0.7" radius-outer="0.75" rotation="-90 0 0" color="#00eaff" opacity="0.7"></a-ring>
+          
+          <!-- Datos -->
+          <a-text value="HUMEDAD" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.3" position="0 0.2 0.1"></a-text>
+          <a-text id="hum-value" value="65" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.5" position="0 -0.2 0.1"></a-text>
+          <a-text value="%" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.3" position="0 -0.5 0.1"></a-text>
+        </a-entity>
+      </a-entity>
+      
+      <!-- Presión - 72° -->
+      <a-entity position="3.34 2.3 1.08" rotation="0 252 0" class="data-card">
+        <a-entity>
+          <!-- Efecto de brillo -->
+          <a-plane position="0 0 -0.05" width="1.8" height="1.2" color="#002244" opacity="0.8" transparent="true"></a-plane>
+          <a-plane position="0 0 -0.04" width="1.7" height="1.1" color="#003366" opacity="0.7" transparent="true"></a-plane>
+          <a-plane position="0 0 -0.03" width="1.6" height="1.0" color="#004488" opacity="0.6" transparent="true"></a-plane>
+          
+          <!-- Borde iluminado -->
+          <a-plane position="0 0 -0.02" width="1.5" height="0.9" color="#0055aa" opacity="0.5" transparent="true"></a-plane>
+          <a-ring position="0 0 -0.01" radius-inner="0.7" radius-outer="0.75" rotation="-90 0 0" color="#00eaff" opacity="0.7"></a-ring>
+          
+          <!-- Datos -->
+          <a-text value="PRESION" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.3" position="0 0.2 0.1"></a-text>
+          <a-text id="press-value" value="1013" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.5" position="0 -0.2 0.1"></a-text>
+          <a-text value="hPa" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.3" position="0 -0.5 0.1"></a-text>
+        </a-entity>
+      </a-entity>
+      
+      <!-- Altitud - 108° -->
+      <a-entity position="3.34 2.3 -1.08" rotation="0 288 0" class="data-card">
+        <a-entity>
+          <!-- Efecto de brillo -->
+          <a-plane position="0 0 -0.05" width="1.8" height="1.2" color="#002244" opacity="0.8" transparent="true"></a-plane>
+          <a-plane position="0 0 -0.04" width="1.7" height="1.1" color="#003366" opacity="0.7" transparent="true"></a-plane>
+          <a-plane position="0 0 -0.03" width="1.6" height="1.0" color="#004488" opacity="0.6" transparent="true"></a-plane>
+          
+          <!-- Borde iluminado -->
+          <a-plane position="0 0 -0.02" width="1.5" height="0.9" color="#0055aa" opacity="0.5" transparent="true"></a-plane>
+          <a-ring position="0 0 -0.01" radius-inner="0.7" radius-outer="0.75" rotation="-90 0 0" color="#00eaff" opacity="0.7"></a-ring>
+          
+          <!-- Datos -->
+          <a-text value="ALTITUD" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.3" position="0 0.2 0.1"></a-text>
+          <a-text id="alt-value" value="150" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.5" position="0 -0.2 0.1"></a-text>
+          <a-text value="m" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.3" position="0 -0.5 0.1"></a-text>
+        </a-entity>
+      </a-entity>
+      
+      <!-- Gas - 144° -->
+      <a-entity position="2.05 2.3 -2.84" rotation="0 324 0" class="data-card">
+        <a-entity>
+          <!-- Efecto de brillo -->
+          <a-plane position="0 0 -0.05" width="1.8" height="1.2" color="#002244" opacity="0.8" transparent="true"></a-plane>
+          <a-plane position="0 0 -0.04" width="1.7" height="1.1" color="#003366" opacity="0.7" transparent="true"></a-plane>
+          <a-plane position="0 0 -0.03" width="1.6" height="1.0" color="#004488" opacity="0.6" transparent="true"></a-plane>
+          
+          <!-- Borde iluminado -->
+          <a-plane position="0 0 -0.02" width="1.5" height="0.9" color="#0055aa" opacity="0.5" transparent="true"></a-plane>
+          <a-ring position="0 0 -0.01" radius-inner="0.7" radius-outer="0.75" rotation="-90 0 0" color="#00eaff" opacity="0.7"></a-ring>
+          
+          <!-- Datos -->
+          <a-text value="GAS" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.3" position="0 0.2 0.1"></a-text>
+          <a-text id="gas-value" value="1.2" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.5" position="0 -0.2 0.1"></a-text>
+          <a-text value="kOhm" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.3" position="0 -0.5 0.1"></a-text>
+        </a-entity>
+      </a-entity>
+      
+      <!-- Lluvia - 180° (atrás) -->
+      <a-entity position="0 2.3 -3.5" rotation="0 0 0" class="data-card">
+        <a-entity>
+          <!-- Efecto de brillo -->
+          <a-plane position="0 0 -0.05" width="1.8" height="1.2" color="#002244" opacity="0.8" transparent="true"></a-plane>
+          <a-plane position="0 0 -0.04" width="1.7" height="1.1" color="#003366" opacity="0.7" transparent="true"></a-plane>
+          <a-plane position="0 0 -0.03" width="1.6" height="1.0" color="#004488" opacity="0.6" transparent="true"></a-plane>
+          
+          <!-- Borde iluminado -->
+          <a-plane position="0 0 -0.02" width="1.5" height="0.9" color="#0055aa" opacity="0.5" transparent="true"></a-plane>
+          <a-ring position="0 0 -0.01" radius-inner="0.7" radius-outer="0.75" rotation="-90 0 0" color="#00eaff" opacity="0.7"></a-ring>
+          
+          <!-- Datos -->
+          <a-text value="LLUVIA" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.3" position="0 0.2 0.1"></a-text>
+          <a-text id="rain-value" value="no" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.5" position="0 -0.2 0.1"></a-text>
+        </a-entity>
+      </a-entity>
+      
+      <!-- PM2.5 - 216° -->
+      <a-entity position="-2.05 2.3 -2.84" rotation="0 36 0" class="data-card">
+        <a-entity>
+          <!-- Efecto de brillo -->
+          <a-plane position="0 0 -0.05" width="1.8" height="1.2" color="#002244" opacity="0.8" transparent="true"></a-plane>
+          <a-plane position="0 0 -0.04" width="1.7" height="1.1" color="#003366" opacity="0.7" transparent="true"></a-plane>
+          <a-plane position="0 0 -0.03" width="1.6" height="1.0" color="#004488" opacity="0.6" transparent="true"></a-plane>
+          
+          <!-- Borde iluminado -->
+          <a-plane position="0 0 -0.02" width="1.5" height="0.9" color="#0055aa" opacity="0.5" transparent="true"></a-plane>
+          <a-ring position="0 0 -0.01" radius-inner="0.7" radius-outer="0.75" rotation="-90 0 0" color="#00eaff" opacity="0.7"></a-ring>
+          
+          <!-- Datos -->
+          <a-text value="PM2.5" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.3" position="0 0.2 0.1"></a-text>
+          <a-text id="pm25-value" value="12" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.5" position="0 -0.2 0.1"></a-text>
+          <a-text value="ug/m3" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.3" position="0 -0.5 0.1"></a-text>
+        </a-entity>
+      </a-entity>
+      
+      <!-- PM10 - 252° -->
+      <a-entity position="-3.34 2.3 -1.08" rotation="0 72 0" class="data-card">
+        <a-entity>
+          <!-- Efecto de brillo -->
+          <a-plane position="0 0 -0.05" width="1.8" height="1.2" color="#002244" opacity="0.8" transparent="true"></a-plane>
+          <a-plane position="0 0 -0.04" width="1.7" height="1.1" color="#003366" opacity="0.7" transparent="true"></a-plane>
+          <a-plane position="0 0 -0.03" width="1.6" height="1.0" color="#004488" opacity="0.6" transparent="true"></a-plane>
+          
+          <!-- Borde iluminado -->
+          <a-plane position="0 0 -0.02" width="1.5" height="0.9" color="#0055aa" opacity="0.5" transparent="true"></a-plane>
+          <a-ring position="0 0 -0.01" radius-inner="0.7" radius-outer="0.75" rotation="-90 0 0" color="#00eaff" opacity="0.7"></a-ring>
+          
+          <!-- Datos -->
+          <a-text value="PM10" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.3" position="0 0.2 0.1"></a-text>
+          <a-text id="pm10-value" value="25" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.5" position="0 -0.2 0.1"></a-text>
+          <a-text value="ug/m3" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.3" position="0 -0.5 0.1"></a-text>
+        </a-entity>
+      </a-entity>
+      
+      <!-- Dirección del Viento - 288° -->
+      <a-entity position="-3.34 2.3 1.08" rotation="0 108 0" class="data-card">
+        <a-entity>
+          <!-- Efecto de brillo -->
+          <a-plane position="0 0 -0.05" width="1.8" height="1.2" color="#002244" opacity="0.8" transparent="true"></a-plane>
+          <a-plane position="0 0 -0.04" width="1.7" height="1.1" color="#003366" opacity="0.7" transparent="true"></a-plane>
+          <a-plane position="0 0 -0.03" width="1.6" height="1.0" color="#004488" opacity="0.6" transparent="true"></a-plane>
+          
+          <!-- Borde iluminado -->
+          <a-plane position="0 0 -0.02" width="1.5" height="0.9" color="#0055aa" opacity="0.5" transparent="true"></a-plane>
+          <a-ring position="0 0 -0.01" radius-inner="0.7" radius-outer="0.75" rotation="-90 0 0" color="#00eaff" opacity="0.7"></a-ring>
+          
+          <!-- Datos -->
+          <a-text value="VIENTO" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.3" position="0 0.2 0.1"></a-text>
+          <a-text id="wind-value" value="180" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.5" position="0 -0.2 0.1"></a-text>
+          <a-text value="grados" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.3" position="0 -0.5 0.1"></a-text>
+        </a-entity>
+      </a-entity>
+      
+      <!-- Velocidad del Viento - 324° -->
+      <a-entity position="-2.05 2.3 2.84" rotation="0 144 0" class="data-card">
+        <a-entity>
+          <!-- Efecto de brillo -->
+          <a-plane position="0 0 -0.05" width="1.8" height="1.2" color="#002244" opacity="0.8" transparent="true"></a-plane>
+          <a-plane position="0 0 -0.04" width="1.7" height="1.1" color="#003366" opacity="0.7" transparent="true"></a-plane>
+          <a-plane position="0 0 -0.03" width="1.6" height="1.0" color="#004488" opacity="0.6" transparent="true"></a-plane>
+          
+          <!-- Borde iluminado -->
+          <a-plane position="0 0 -0.02" width="1.5" height="0.9" color="#0055aa" opacity="0.5" transparent="true"></a-plane>
+          <a-ring position="0 0 -0.01" radius-inner="0.7" radius-outer="0.75" rotation="-90 0 0" color="#00eaff" opacity="0.7"></a-ring>
+          
+          <!-- Datos -->
+          <a-text value="VEL. VIENTO" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.3" position="0 0.2 0.1"></a-text>
+          <a-text id="wind-speed-value" value="5.2" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.5" position="0 -0.2 0.1"></a-text>
+          <a-text value="km/h" color="#FFFFFF" width="4" align="center" shader="flat" side="double" font-size="0.3" position="0 -0.5 0.1"></a-text>
+        </a-entity>
+      </a-entity>
+    </a-entity>
+  </a-scene>
+
+  <!-- Loader de conexión -->
+  <div class="loader" id="loader">
+    <div class="loader-spinner"></div>
+    <div class="loader-text">CONECTANDO A HIVE MQ</div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Variables globales
+      let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      let mqttClient;
+      let connectionStatusElement = document.getElementById('connection-status');
+      let connectionLed = document.querySelector('.led');
+      let connectionText = document.getElementById('connection-text');
+      let loader = document.getElementById('loader');
+      let splashScreen = document.getElementById('splash-screen');
+      let vrStartButton = document.getElementById('vr-start-button');
+      let isVRMode = false;
+      let mqttConnected = false;
+      let xrSupported = false;
+      
+      // Crear estrellas en el fondo
+      function createStars() {
+        const starsContainer = document.getElementById('starsystem');
+        const starCount = 800; // Aumentado el número de estrellas
+        
+        // Limpiar estrellas existentes
+        while (starsContainer.firstChild) {
+          starsContainer.removeChild(starsContainer.firstChild);
+        }
+        
+        // Crear estrellas en una esfera completa
+        for (let i = 0; i < starCount; i++) {
+          // Generar coordenadas esféricas para distribución uniforme en 3D
+          const radius = 50 + Math.random() * 150; // Distancia desde el usuario (50-200 unidades)
+          
+          // Asegurar distribución uniforme en esfera completa
+          const theta = Math.random() * Math.PI * 2; // Ángulo alrededor del eje Y (0-2π)
+          const phi = Math.acos(2 * Math.random() - 1); // Ángulo desde el polo norte (0-π)
+          
+          // Convertir a coordenadas cartesianas
+          const x = radius * Math.sin(phi) * Math.cos(theta);
+          const y = radius * Math.cos(phi);
+          const z = radius * Math.sin(phi) * Math.sin(theta);
+          
+          const size = 0.02 + Math.random() * 0.1;
+          const brightness = 0.3 + Math.random() * 0.7;
+          
+          const star = document.createElement('a-entity');
+          star.setAttribute('position', `${x} ${y} ${z}`);
+          
+          const geometry = document.createElement('a-sphere');
+          geometry.setAttribute('radius', size);
+          geometry.setAttribute('color', '#ffffff');
+          geometry.setAttribute('opacity', brightness);
+          
+          // Agregar animación de parpadeo aleatoria
+          const animation = document.createElement('a-animation');
+          animation.setAttribute('attribute', 'opacity');
+          animation.setAttribute('dur', `${2000 + Math.random() * 4000}`);
+          animation.setAttribute('easing', 'linear');
+          animation.setAttribute('direction', 'alternate');
+          animation.setAttribute('repeat', 'indefinite');
+          animation.setAttribute('from', `${brightness * 0.5}`);
+          animation.setAttribute('to', `${brightness}`);
+          
+          star.appendChild(geometry);
+          star.appendChild(animation);
+          starsContainer.appendChild(star);
+        }
+        
+        // Añadir estrellas fugaces ocasionales
+        for (let i = 0; i < 15; i++) {
+          const delay = Math.random() * 10;
+          const x = -100 + Math.random() * 200;
+          const y = -100 + Math.random() * 200;
+          const z = -100 + Math.random() * 200;
+          
+          const meteor = document.createElement('a-entity');
+          meteor.setAttribute('position', `${x} ${y} ${z}`);
+          
+          const trail = document.createElement('a-cylinder');
+          trail.setAttribute('radius', '0.01');
+          trail.setAttribute('height', '10');
+          trail.setAttribute('color', '#ffffff');
+          trail.setAttribute('opacity', '0.5');
+          trail.setAttribute('rotation', '0 0 90');
+          
+          const head = document.createElement('a-sphere');
+          head.setAttribute('radius', '0.05');
+          head.setAttribute('color', '#ffff00');
+          head.setAttribute('opacity', '1');
+          
+          const animation = document.createElement('a-animation');
+          animation.setAttribute('attribute', 'position');
+          animation.setAttribute('dur', '5000');
+          animation.setAttribute('easing', 'linear');
+          animation.setAttribute('repeat', 'indefinite');
+          animation.setAttribute('delay', `${delay * 1000}`);
+          
+          // Dirección aleatoria para la estrella fugaz
+          const directionX = -1 + Math.random() * 2;
+          const directionY = -1 + Math.random() * 2;
+          const directionZ = -1 + Math.random() * 2;
+          
+          const length = Math.sqrt(directionX * directionX + directionY * directionY + directionZ * directionZ);
+          const normalizedX = directionX / length * 100;
+          const normalizedY = directionY / length * 100;
+          const normalizedZ = directionZ / length * 100;
+          
+          animation.setAttribute('from', `${x} ${y} ${z}`);
+          animation.setAttribute('to', `${x - normalizedX} ${y - normalizedY} ${z - normalizedZ}`);
+          
+          meteor.appendChild(trail);
+          meteor.appendChild(head);
+          meteor.appendChild(animation);
+          starsContainer.appendChild(meteor);
+        }
+      }
+      
+      // Convertir dirección del viento en grados a puntos cardinales
+      function windDirectionToCardinal(degrees) {
+        const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+        const index = Math.round((degrees % 360) / 22.5) % 16;
+        return directions[index];
+      }
+      
+      // Convertir m/s a km/h
+      function msToKmh(ms) {
+        return (ms * 3.6).toFixed(1);
+      }
+      
+      // Verificar soporte de WebXR
+      function checkXRSupport() {
+        if (navigator.xr) {
+          navigator.xr.isSessionSupported('immersive-vr')
+            .then(supported => {
+              xrSupported = supported;
+              console.log(`WebXR VR soportado: ${supported}`);
+            })
+            .catch(error => {
+              console.warn('Error al verificar soporte WebXR:', error);
+              xrSupported = false;
+            });
+        } else {
+          console.log('WebXR no está disponible en este navegador');
+          xrSupported = false;
+        }
+      }
+      
+      // Actualizar estado de conexión
+      function updateConnectionStatus(connected, message = "") {
+        if (connected) {
+          mqttConnected = true;
+          connectionLed.classList.add('connected');
+          connectionText.textContent = "Conectado";
+        } else {
+          mqttConnected = false;
+          connectionLed.classList.remove('connected');
+          connectionText.textContent = message || "Desconectado";
+        }
+      }
+      
+      // Entrar a VR
+      function enterVR() {
+        const scene = document.querySelector('a-scene');
+        if (!scene || !scene.enterVR) {
+          console.error("A-Frame no está inicializado correctamente");
+          return;
+        }
+        
+        // Si no hay soporte para WebXR, mostrar mensaje informativo
+        if (!xrSupported) {
+          if (splashScreen) {
+            splashScreen.innerHTML = `
+              <h2>Modo 3D Normal</h2>
+              <p>La realidad virtual no está disponible en tu dispositivo.</p>
+              <p>Gira tu cuerpo 360° para ver todos los datos en la banda circular alrededor de ti.</p>
+              <button id="continue-button" style="margin-top: 20px;">Continuar en modo 3D</button>
+            `;
+            document.getElementById('continue-button').addEventListener('click', function() {
+              splashScreen.style.display = 'none';
+            });
+          }
+          return;
+        }
+        
+        scene.enterVR()
+          .then(() => {
+            isVRMode = true;
+            
+            // Ocultar pantalla de inicio
+            if (splashScreen) {
+              splashScreen.style.display = 'none';
+            }
+            
+            // Ajustar posición para VR
+            const cameraRig = document.getElementById('camera-rig');
+            if (cameraRig) {
+              cameraRig.setAttribute('position', '0 1.2 0');
+            }
+          })
+          .catch(error => {
+            console.error("Error al entrar a VR:", error);
+            
+            // Manejar errores específicos de WebXR
+            if (error.name === 'NotSupportedError' || error.message.includes('No runtimes supported')) {
+              connectionText.textContent = "VR no soportado";
+              
+              if (splashScreen) {
+                splashScreen.innerHTML = `
+                  <h2>Modo 3D Normal</h2>
+                  <p>Tu dispositivo no soporta realidad virtual.</p>
+                  <p>Gira tu cuerpo 360° para ver todos los datos en la banda circular alrededor de ti.</p>
+                  <button id="continue-button" style="margin-top: 20px;">Continuar en modo 3D</button>
+                `;
+                document.getElementById('continue-button').addEventListener('click', function() {
+                  splashScreen.style.display = 'none';
+                });
+              }
+            } else {
+              connectionText.textContent = "Error al iniciar VR";
+              
+              if (splashScreen) {
+                splashScreen.innerHTML = `
+                  <h2>Error al iniciar VR</h2>
+                  <p>${error.message}</p>
+                  <p>Gira tu cuerpo 360° para ver todos los datos en la banda circular alrededor de ti.</p>
+                  <button id="continue-button" style="margin-top: 20px;">Continuar en modo 3D</button>
+                `;
+                document.getElementById('continue-button').addEventListener('click', function() {
+                  splashScreen.style.display = 'none';
+                });
+              }
+            }
+          });
+      }
+      
+      // Configurar botón de inicio de VR
+      function setupVRButton() {
+        if (vrStartButton) {
+          vrStartButton.addEventListener('click', function() {
+            // Primero verificar si MQTT está conectado
+            if (mqttConnected) {
+              enterVR();
+            } else {
+              connectionText.textContent = "Esperando conexión MQTT...";
+              // Esperar hasta que MQTT se conecte
+              const checkMQTT = setInterval(() => {
+                if (mqttConnected) {
+                  clearInterval(checkMQTT);
+                  enterVR();
+                }
+              }, 100);
+            }
+          });
+        }
+      }
+      
+      // Conectar a HiveMQ usando mqtt.js
+      function connectToHiveMQ() {
+        const broker = "wss://broker.hivemq.com:8884/mqtt";
+        const clientId = "vrClient_" + Math.random().toString(16).substr(2, 8);
+        
+        try {
+          // Crear cliente MQTT usando mqtt.js
+          mqttClient = mqtt.connect(broker, {
+            clientId: clientId,
+            protocolVersion: 4,
+            clean: true,
+            connectTimeout: 10000,
+            reconnectPeriod: 3000
+          });
+          
+          // Manejar eventos de conexión
+          mqttClient.on("connect", function() {
+            console.log("✅ Conectado al broker MQTT");
+            updateConnectionStatus(true);
+            
+            // Suscribirse a todos los tópicos de Horus
+            mqttClient.subscribe("horus/#", function(err) {
+              if (!err) {
+                console.log("🔍 Suscrito a todos los tópicos de Horus");
+                
+                // Ocultar loader después de conexión
+                setTimeout(() => {
+                  loader.style.opacity = '0';
+                  setTimeout(() => {
+                    loader.style.display = 'none';
+                  }, 500);
+                }, 800);
+              }
+            });
+          });
+          
+          // Manejar mensajes
+          mqttClient.on("message", function(topic, payload) {
+            const value = payload.toString().trim();
+            if (!value) return;
+            
+            // Mapeo de topics a elementos
+            const topicMap = {
+              "horus/vvb/temperatura": "temp-value",
+              "horus/vvb/humedad": "hum-value",
+              "horus/vvb/presion": "press-value",
+              "horus/vvb/altitud": "alt-value",
+              "horus/vvb/gas": "gas-value",
+              "horus/vvb/lluvia": "rain-value",
+              "horus/vvb/pm25": "pm25-value",
+              "horus/vvb/pm10": "pm10-value",
+              "horus/vvb/wind_direction": "wind-value",
+              "horus/vvb/wind_speed": "wind-speed-value"
+            };
+            
+            const elementId = topicMap[topic];
+            if (!elementId) return;
+            
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            
+            // Actualizar el valor
+            if (topic === "horus/vvb/lluvia") {
+              const raining = ["1", "true", "si", "yes", "sí", "rain"].includes(value.toLowerCase());
+              element.setAttribute('text', `value: ${raining ? 'si' : 'no'}`);
+            } else if (topic === "horus/vvb/wind_direction") {
+              // Convertir grados a punto cardinal
+              const degrees = parseFloat(value);
+              if (!isNaN(degrees)) {
+                const cardinal = windDirectionToCardinal(degrees);
+                element.setAttribute('text', `value: ${cardinal}`);
+              }
+            } else if (topic === "horus/vvb/wind_speed") {
+              // Convertir m/s a km/h
+              const ms = parseFloat(value);
+              if (!isNaN(ms)) {
+                const kmh = msToKmh(ms);
+                document.getElementById('wind-speed-value').setAttribute('text', `value: ${kmh}`);
+              }
+            } else {
+              element.setAttribute('text', `value: ${value}`);
+            }
+          });
+          
+          // Manejar errores
+          mqttClient.on("error", function(err) {
+            console.error("❌ Error MQTT:", err);
+            updateConnectionStatus(false, "Error de conexión");
+          });
+          
+          // Manejar cierre
+          mqttClient.on("close", function() {
+            updateConnectionStatus(false, "Desconectado");
+          });
+          
+        } catch (error) {
+          console.error("Error al crear cliente MQTT:", error);
+          updateConnectionStatus(false, "Error de librería");
+        }
+      }
+      
+      // Configuración inicial
+      function init() {
+        // Crear estrellas en el fondo
+        createStars();
+        
+        // Verificar soporte WebXR
+        checkXRSupport();
+        
+        // Configurar el botón de inicio de VR
+        setupVRButton();
+        
+        // Conectar al broker
+        connectToHiveMQ();
+      }
+      
+      // Redirigir a mqtt.html al salir de VR
+      window.addEventListener('beforeunload', function() {
+        if (isVRMode) {
+          window.location.href = 'mqtt.html';
+        }
+      });
+      
+      // Inicializar después de un breve retraso para asegurar que A-Frame está listo
+      setTimeout(init, 500);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,353 @@
+/* Estilos específicos para el botón VR */
+#vr-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(0, 234, 255, 0.2);
+  color: var(--primary-color);
+  border: none;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 12px rgba(0, 234, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(0, 234, 255, 0.3);
+  display: none;
+}
+
+#vr-button:hover {
+  transform: scale(1.15);
+  background: rgba(0, 234, 255, 0.3);
+  box-shadow: 0 0 18px rgba(0, 234, 255, 0.6);
+}
+
+/* Overlay para solicitar permisos de orientación */
+.orientation-permission {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 10, 30, 0.95);
+  z-index: 3000;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 25px;
+  text-align: center;
+}
+
+.orientation-permission h3 {
+  color: var(--primary-color);
+  margin-bottom: 15px;
+  font-size: 20px;
+}
+
+.orientation-permission p {
+  margin-bottom: 20px;
+  font-size: 15px;
+  color: #a0a0a0;
+  max-width: 300px;
+  line-height: 1.5;
+}
+
+.orientation-btn {
+  background: var(--primary-color);
+  color: #000;
+  border: none;
+  padding: 12px 25px;
+  border-radius: 25px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 12px rgba(0, 234, 255, 0.5);
+}
+
+.orientation-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 18px rgba(0, 234, 255, 0.7);
+}
+
+/* Indicador de conexión */
+#connection-status {
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  z-index: 1000;
+  padding: 8px 12px;
+  background: rgba(0, 15, 40, 0.85);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(0, 234, 255, 0.3);
+  backdrop-filter: blur(5px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.led {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #f00;
+  box-shadow: 0 0 6px rgba(255, 0, 0, 0.7);
+  transition: var(--transition);
+  position: relative;
+}
+
+.led:after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: inherit;
+  animation: pulse-inner 2s infinite;
+  opacity: 0.7;
+}
+
+@keyframes pulse-inner {
+  0% { transform: scale(1); opacity: 0.7; }
+  70% { transform: scale(1.4); opacity: 0; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+.led.connected {
+  background: #0f0;
+  box-shadow: 0 0 6px rgba(0, 255, 0, 0.7);
+}
+
+#connection-text {
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+/* Joystick REALISTA - SOLO PARA MÓVILES */
+#joystick-container {
+  position: fixed;
+  left: 25px;
+  bottom: 25px;
+  width: 90px;
+  height: 90px;
+  z-index: 1000;
+  display: none;
+}
+
+/* Panel de datos 3D */
+.sensor-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--border-radius);
+  background: var(--card-bg);
+  padding: 16px 20px;
+  text-align: center;
+  box-shadow: var(--inner-shadow), 0 5px 12px rgba(0, 0, 0, 0.18);
+  transition: var(--transition);
+  border: 1px solid rgba(0, 234, 255, 0.12);
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+.sensor-card:hover {
+  transform: translateY(-5px) scale(var(--hover-scale));
+  box-shadow: var(--inner-shadow), 0 8px 20px rgba(0, 100, 200, 0.3);
+  border-color: var(--primary-color);
+}
+
+.sensor-icon {
+  font-size: 28px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 71, 119, 0.25);
+  border-radius: 10px;
+  margin: 0 auto 10px;
+  border: 1px solid rgba(0, 234, 255, 0.25);
+}
+
+.sensor-name {
+  color: var(--text-secondary);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  margin-bottom: 7px;
+  text-transform: uppercase;
+}
+
+.sensor-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--primary-color);
+  line-height: 1.2;
+  text-shadow: 0 0 6px var(--primary-glow);
+  transition: var(--transition);
+}
+
+.unit {
+  font-size: 16px;
+  color: var(--text-secondary);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Asegurar que los elementos de A-Frame estén ocultos cuando no están en VR */
+.a-enter-vr, .a-canvas, .a-loader, .a-enter-ar, .a-fullscreen, .a-no-cursor, .a-cursor {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+/* Estilos para el dashboard en modo VR */
+.vr-dashboard {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80%;
+  background: rgba(0, 10, 30, 0.85);
+  border-radius: 12px;
+  padding: 15px;
+  z-index: 100;
+  display: none;
+}
+
+.vr-dashboard h2 {
+  color: var(--primary-color);
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.vr-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.vr-metric {
+  background: rgba(0, 30, 60, 0.6);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+}
+
+.vr-metric-value {
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.vr-metric-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* Para móviles, ajustar el layout */
+@media (max-width: 768px) {
+  .vr-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Estilos específicos para la página mqtt.html */
+.mqtt-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.data-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.data-item {
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  border: 1px solid var(--border-color);
+}
+
+.data-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.data-label {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.data-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.metric {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: var(--background-color);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.metric-icon {
+  font-size: 1.8rem;
+}
+
+.metric-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.metric-label {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 400px;
+}
+
+/* Ajustes para modo oscuro */
+@media (prefers-color-scheme: dark) {
+  .data-item {
+    background-color: #2a2a2a;
+    border-color: #444;
+  }
+}

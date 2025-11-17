@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chatbot - Horus Station</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    /* Estilos específicos para el chatbot */
+    .chat-container {
+      max-width: 900px;
+      margin: 0 auto;
+      height: calc(100vh - 180px);
+      display: flex;
+      flex-direction: column;
+      background: var(--card-bg);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0, 10, 30, 0.25);
+      border: 1px solid var(--border);
+    }
+    
+    .chat-header {
+      padding: 18px 24px;
+      background: rgba(0, 30, 60, 0.5);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .chat-header h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .chat-header .status-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      background: #4CAF50;
+      border-radius: 50%;
+      box-shadow: 0 0 6px rgba(76, 175, 80, 0.5);
+    }
+    
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      background: var(--bg);
+    }
+    
+    .message {
+      max-width: 80%;
+      padding: 14px 18px;
+      border-radius: 18px;
+      line-height: 1.5;
+      animation: fadeIn 0.2s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .message.user {
+      background: var(--primary);
+      color: #000;
+      align-self: flex-end;
+      border-bottom-right-radius: 5px;
+    }
+    
+    .message.bot {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      align-self: flex-start;
+      border-bottom-left-radius: 5px;
+      border-left: 3px solid var(--primary);
+    }
+    
+    .message-time {
+      font-size: 12px;
+      color: var(--text-secondary);
+      opacity: 0.7;
+      margin-top: 6px;
+      text-align: right;
+    }
+    
+    .chat-input {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 12px;
+    }
+    
+    .chat-input input {
+      flex: 1;
+      padding: 14px 18px;
+      border-radius: 30px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      font-size: 16px;
+      transition: all 0.2s ease;
+    }
+    
+    .chat-input input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-glow);
+    }
+    
+    .chat-input button {
+      padding: 0 24px;
+      background: var(--primary);
+      color: #000;
+      border: none;
+      border-radius: 30px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .chat-input button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+    
+    .chat-input button:active {
+      transform: translateY(0);
+    }
+    
+    .suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 0 24px 16px;
+    }
+    
+    .suggestion {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid var(--border);
+    }
+    
+    .suggestion:hover {
+      background: var(--primary);
+      color: #000;
+      transform: translateY(-2px);
+    }
+    
+    .typing-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 10px 16px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      border-left: 3px solid var(--primary);
+      align-self: flex-start;
+    }
+    
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--text);
+      border-radius: 50%;
+      animation: typing 1.4s infinite ease-in-out;
+    }
+    
+    .typing-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+    
+    .typing-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+    
+    @keyframes typing {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-5px); }
+    }
+    
+    /* Estilos para modo claro */
+    body.light-mode .message.user {
+      background: #0056b3;
+      color: white;
+    }
+    
+    body.light-mode .message.bot {
+      background: #f5f9ff;
+      color: #333333;
+      border-left: 3px solid #0056b3;
+    }
+    
+    body.light-mode .chat-messages {
+      background: #f8fafc;
+    }
+    
+    body.light-mode .chat-input input {
+      background: #ffffff;
+      border-color: #e0e0e0;
+    }
+    
+    /* Animaciones de entrada */
+    .chat-container {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: containerFadeIn 0.5s ease forwards;
+    }
+    
+    @keyframes containerFadeIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .chat-container {
+        height: calc(100vh - 160px);
+        border-radius: 12px;
+      }
+      
+      .message {
+        max-width: 90%;
+      }
+      
+      .chat-header {
+        padding: 14px 18px;
+      }
+      
+      .chat-messages {
+        padding: 16px;
+      }
+      
+      .chat-input {
+        padding: 12px 16px;
+      }
+      
+      .chat-input input {
+        padding: 12px 16px;
+      }
+      
+      .chat-input button {
+        padding: 0 18px;
+        font-size: 14px;
+      }
+    }
+    
+    /* Indicador de estado de conexión */
+    .connection-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+    
+    .connection-status.connected {
+      background: rgba(76, 175, 80, 0.15);
+      color: #4CAF50;
+    }
+    
+    .connection-status.disconnected {
+      background: rgba(244, 67, 54, 0.15);
+      color: #F44336;
+    }
+    
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4CAF50;
+    }
+    
+    /* Configuración de IA */
+    .ia-settings {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+    }
+    
+    .ia-settings-btn {
+      background: var(--primary);
+      color: #000;
+      border: none;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 234, 255, 0.3);
+      transition: all 0.2s ease;
+    }
+    
+    .ia-settings-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 16px rgba(0, 234, 255, 0.4);
+    }
+    
+    .ia-settings-panel {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 16px;
+      width: 400px;
+      box-shadow: 0 8px 24px rgba(0, 10, 30, 0.3);
+      display: none;
+      z-index: 1000;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    
+    .ia-settings-panel.active {
+      display: block;
+    }
+    
+    .ia-settings-panel h3 {
+      margin: 0 0 12px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .ia-settings-panel h4 {
+      margin: 16px 0 8px;
+      color: var(--text);
+      font-size: 16px;
+    }
+    
+    .ia-settings-panel p {
+      margin: 8px 0;
+      line-height: 1.5;
+    }
+    
+    .ia-settings-panel a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+    
+    .ia-settings-panel a:hover {
+      text-decoration: underline;
+    }
+    
+    .ia-settings-panel input {
+      width: 100%;
+      padding: 8px 12px;
+      margin-bottom: 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+    }
+    
+    .ia-settings-panel button {
+      width: 100%;
+      padding: 8px;
+      background: var(--primary);
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    
+    .ia-status {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    
+    .ia-status.connected {
+      background: rgba(76, 175, 80, 0.15);
+      color: #4CAF50;
+    }
+    
+    .ia-status.disconnected {
+      background: rgba(244, 67, 54, 0.15);
+      color: #F44336;
+    }
+    
+    .step {
+      counter-increment: step-counter;
+      position: relative;
+      padding-left: 32px;
+      margin: 16px 0;
+    }
+    
+    .step:before {
+      content: counter(step-counter);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 24px;
+      height: 24px;
+      background: var(--primary);
+      color: #000;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    
+    .step-img {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 8px;
+      margin: 8px 0;
+      font-size: 12px;
+      color: var(--text-secondary);
+      text-align: center;
+    }
+    
+    .step-img::before {
+      content: "🖼️ Captura de pantalla";
+      display: block;
+      margin-bottom: 4px;
+    }
+    
+    .token-example {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      padding: 8px;
+      font-family: monospace;
+      font-size: 14px;
+      margin: 8px 0;
+    }
+    
+    .disclaimer {
+      font-size: 12px;
+      color: var(--text-secondary);
+      opacity: 0.7;
+      margin-top: 10px;
+    }
+    
+    .tab-container {
+      margin-top: 16px;
+    }
+    
+    .tab-buttons {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .tab-button {
+      padding: 8px 16px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--text-secondary);
+      border-bottom: 2px solid transparent;
+    }
+    
+    .tab-button.active {
+      color: var(--text);
+      border-bottom: 2px solid var(--primary);
+      font-weight: 500;
+    }
+    
+    .tab-content {
+      display: none;
+      padding: 16px 0;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    /* Diagnóstico */
+    .diagnostic-panel {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 12px;
+      font-size: 13px;
+    }
+    
+    .diagnostic-item {
+      margin: 8px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .diagnostic-status {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    
+    .status-good {
+      background: #4CAF50;
+    }
+    
+    .status-warning {
+      background: #FFC107;
+    }
+    
+    .status-error {
+      background: #F44336;
+    }
+    
+    .diagnostic-title {
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+    
+    .diagnostic-btn {
+      background: var(--primary);
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 12px;
+      margin-top: 10px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    
+    .diagnostic-detail {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-left: 24px;
+      margin-top: 4px;
+    }
+    
+    .troubleshooting {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 12px;
+    }
+    
+    .troubleshooting h4 {
+      margin: 0 0 8px;
+      color: var(--text);
+    }
+    
+    .troubleshooting ul {
+      padding-left: 20px;
+      margin: 8px 0;
+    }
+    
+    .troubleshooting li {
+      margin-bottom: 4px;
+    }
+    
+    .data-sample {
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 6px;
+      padding: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      margin: 8px 0;
+      max-height: 100px;
+      overflow-y: auto;
+    }
+    
+    .solution {
+      background: rgba(76, 175, 80, 0.1);
+      border-left: 3px solid #4CAF50;
+      padding: 8px;
+      border-radius: 4px;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body class="light-mode chatbot-page">
+  <nav class="nav">
+    <div class="nav-container">
+      <div class="nav-buttons">
+        <a href="../index.html" class="nav-btn">
+          <span class="nav-icon">🏠</span> Inicio
+        </a>
+        <a href="mqtt.html" class="nav-btn">
+          <span class="nav-icon">📡</span> Datos en Vivo
+        </a>
+        <a href="analisis.html" class="nav-btn">
+          <span class="nav-icon">📊</span> Análisis
+        </a>
+        <a href="chatbot.html" class="nav-btn active">
+          <span class="nav-icon">🤖</span> Chatbot
+        </a>
+      </div>
+
+      <!-- Switch de Galahad -->
+      <div class="nav-right">
+        <label class="theme-switch">
+          <input type="checkbox" class="theme-switch__checkbox">
+          <div class="theme-switch__container">
+            <div class="theme-switch__clouds"></div>
+            <div class="theme-switch__stars-container">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 55" fill="none">
+                <path d="M135.831 3.00688C135.055 3.85027 134.111 4.29946 133 4.35447C134.111 4.40947 135.055 4.85867 135.831 5.71123C136.607 6.55462 136.996 7.56303 136.996 8.72727C136.996 7.95722 137.172 7.25134 137.525 6.59129C137.886 5.93124 138.372 5.39954 138.98 5.00535C139.598 4.60199 140.268 4.39114 141 4.35447C139.88 4.2903 138.936 3.85027 138.16 3.00688C137.384 2.16348 136.996 1.16425 136.996 0C136.996 1.16425 136.607 2.16348 135.831 3.00688ZM31 23.3545C32.1114 23.2995 33.0551 22.8503 33.8313 22.0069C34.6075 21.1635 34.9956 20.1642 34.9956 19C34.9956 20.1642 35.3837 21.1635 36.1599 22.0069C36.9361 22.8503 37.8798 23.2903 39 23.3545C38.2679 23.3911 37.5976 23.602 36.9802 24.0053C36.3716 24.3995 35.8864 24.9312 35.5248 25.5913C35.172 26.2513 34.9956 26.9572 34.9956 27.7273C34.9956 26.563 34.6075 25.5546 33.8313 24.7112C33.0551 23.8587 32.1114 23.4095 31 23.3545ZM0 36.3545C1.11136 36.2995 2.05513 35.8503 2.83131 35.0069C3.6075 34.1635 3.99559 33.1642 3.99559 32C3.99559 33.1642 4.38368 34.1635 5.15987 35.0069C5.93605 35.8503 6.87982 36.2903 8 36.3545C7.26792 36.3911 6.59757 36.602 5.98015 37.0053C5.37155 37.3995 4.88644 37.9312 4.52481 38.5913C4.172 39.2513 3.99559 39.9572 3.99559 40.7273C3.99559 39.563 3.6075 38.5546 2.83131 37.7112C2.05513 36.8587 1.11136 36.4095 0 36.3545ZM56.8313 24.0069C56.0551 24.8503 55.1114 25.2995 54 25.3545C55.1114 25.4095 56.0551 25.8587 56.8313 26.7112C57.6075 27.5546 57.9956 28.563 57.9956 29.7273C57.9956 28.9572 58.172 28.2513 58.5248 27.5913C58.8864 26.9312 59.3716 26.3995 59.9802 26.0053C60.5976 25.602 61.2679 25.3911 62 25.3545C60.8798 25.2903 59.9361 24.8503 59.1599 24.0069C58.3837 23.1635 57.9956 22.1642 57.9956 21C57.9956 22.1642 57.6075 23.1635 56.8313 24.0069ZM81 25.3545C82.1114 25.2995 83.0551 24.8503 83.8313 24.0069C84.6075 23.1635 84.9956 22.1642 84.9956 21C84.9956 22.1642 85.3837 23.1635 86.1599 24.0069C86.9361 24.8503 87.8798 25.2903 89 25.3545C88.2679 25.3911 87.5976 25.602 86.9802 26.0053C86.3716 26.3995 85.8864 26.9312 85.5248 27.5913C85.172 28.2513 84.9956 28.9572 84.9956 29.7273C84.9956 28.563 84.6075 27.5546 83.8313 26.7112C83.0551 25.8587 82.1114 25.4095 81 25.3545ZM136 36.3545C137.111 36.2995 138.055 35.8503 138.831 35.0069C139.607 34.1635 139.996 33.1642 139.996 32C139.996 33.1642 140.384 34.1635 141.16 35.0069C141.936 35.8503 142.88 36.2903 144 36.3545C143.268 36.3911 142.598 36.602 141.98 37.0053C141.372 37.3995 140.886 37.9312 140.525 38.5913C140.172 39.2513 139.996 39.9572 139.996 40.7273C139.996 39.563 139.607 38.5546 138.831 37.7112C138.055 36.8587 137.111 36.4095 136 36.3545ZM101.831 49.0069C101.055 49.8503 100.111 50.2995 99 50.3545C100.111 50.4095 101.055 50.8587 101.831 51.7112C102.607 52.5546 102.996 53.563 102.996 54.7273C102.996 53.9572 103.172 53.2513 103.525 52.5913C103.886 51.9312 104.372 51.3995 104.98 51.0053C105.598 50.602 106.268 50.3911 107 50.3545C105.88 50.2903 104.936 49.8503 104.16 49.0069C103.384 48.1635 102.996 47.1642 102.996 46C102.996 47.1642 102.607 48.1635 101.831 49.0069Z" fill="currentColor"/>
+              </svg>
+            </div>
+            <div class="theme-switch__circle-container">
+              <div class="theme-switch__sun-moon-container">
+                <div class="theme-switch__moon">
+                  <div class="theme-switch__spot"></div>
+                  <div class="theme-switch__spot"></div>
+                  <div class="theme-switch__spot"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </label>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <header>
+      <h1>🤖 Chatbot de la Estación Horus</h1>
+      <p>Interactúa con nuestro asistente virtual para obtener predicciones meteorológicas inteligentes</p>
+    </header>
+
+    <main class="chat-main">
+      <div class="chat-container">
+        <div class="chat-header">
+          <div class="status-indicator"></div>
+          <h2><span>🤖</span> Horus Assistant</h2>
+        </div>
+        
+        <div class="chat-messages" id="chat-messages">
+          <div class="message bot">
+            ¡Hola! Soy Horus Assistant, tu asistente virtual para la estación meteorológica Horus.
+            <div class="message-time">Ahora</div>
+          </div>
+          <div class="message bot">
+            Puedo ayudarte con:
+            <br><br>
+            • Consultar datos meteorológicos actuales
+            <br>
+            • Predecir tendencias climáticas
+            <br>
+            • Analizar patrones históricos
+            <br>
+            • Responder preguntas sobre el proyecto
+            <div class="message-time">Ahora</div>
+          </div>
+        </div>
+        
+        <div class="suggestions" id="suggestions">
+          <div class="suggestion">¿Cómo estará el clima en las próximas horas?</div>
+          <div class="suggestion">¿Va a llover pronto?</div>
+          <div class="suggestion">¿Cómo ha variado la temperatura hoy?</div>
+          <div class="suggestion">¿Qué predicción tienes para mañana?</div>
+        </div>
+        
+        <div class="chat-input">
+          <input type="text" id="user-input" placeholder="Escribe tu mensaje...">
+          <button id="send-button">
+            <span>Enviar</span> ➤
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <p>Chatbot de Horus Station - Predicciones meteorológicas con respuestas inteligentes</p>
+      <p class="disclaimer">Este chatbot utiliza un sistema de respuestas inteligentes basado en reglas</p>
+    </footer>
+  </div>
+
+  <!-- CARGA main.js AL FINAL: es CRÍTICO -->
+  <script src="../js/main.js"></script>
+  
+  <!-- Panel de configuración de IA -->
+  <div class="ia-settings">
+    <button class="ia-settings-btn" id="ia-settings-btn">⚙️</button>
+    <div class="ia-settings-panel" id="ia-settings-panel">
+      <h3><span>🤖</span> Configuración de IA</h3>
+      
+      <div class="tab-container">
+        <div class="tab-buttons">
+          <button class="tab-button active" data-tab="setup">Configuración</button>
+          <button class="tab-button" data-tab="help">Ayuda</button>
+          <button class="tab-button" data-tab="diagnostic">Diagnóstico</button>
+        </div>
+        
+        <div class="tab-content active" id="setup-tab">
+          <p>Este chatbot utiliza un sistema de respuestas inteligentes basado en reglas, sin necesidad de conectarse a servicios externos.</p>
+          
+          <div class="step">
+            <h4>¿Por qué no se usa Hugging Face?</h4>
+            <p>La API gratuita de Hugging Face no permite inferencia directa con modelos. Requiere una cuenta PRO o desplegar un Inference Endpoint.</p>
+          </div>
+          
+          <div class="step">
+            <h4>Sistema de respuestas inteligentes</h4>
+            <p>Nuestro sistema analiza tus preguntas y los datos meteorológicos para generar respuestas naturales y útiles.</p>
+          </div>
+          
+          <div class="step">
+            <h4>¿Es realmente gratuito?</h4>
+            <p>¡Sí! Este sistema funciona completamente en tu navegador sin costos ni necesidad de tokens.</p>
+          </div>
+          
+          <div class="step">
+            <h4>¿Necesito tarjeta de crédito?</h4>
+            <p>¡No! Este sistema no requiere tarjeta de crédito ni cuenta en servicios externos.</p>
+          </div>
+          
+          <div class="step">
+            <h4>¿Cómo funciona?</h4>
+            <p>El sistema analiza tus preguntas, identifica palabras clave y combina esa información con los datos meteorológicos para generar respuestas coherentes.</p>
+          </div>
+          
+          <p class="disclaimer">
+            Tu privacidad está garantizada. Todos los datos se procesan en tu navegador.
+          </p>
+        </div>
+        
+        <div class="tab-content" id="help-tab">
+          <h4>¿Qué puedo preguntar?</h4>
+          <p>Puedes preguntar sobre:</p>
+          <ul>
+            <li>Datos meteorológicos actuales</li>
+            <li>Predicciones a corto plazo</li>
+            <li>Patrones históricos</li>
+            <li>Información sobre el proyecto</li>
+          </ul>
+          
+          <h4>Ejemplos de preguntas:</h4>
+          <ul>
+            <li>"¿Cuál es la temperatura actual?"</li>
+            <li>"¿Va a llover en las próximas horas?"</li>
+            <li>"¿Cómo ha variado la humedad hoy?"</li>
+            <li>"¿Qué predicción tienes para mañana?"</li>
+          </ul>
+          
+          <h4>Problemas comunes</h4>
+          <div class="troubleshooting">
+            <h4>Problema: "No se cargan los datos"</h4>
+            <p><strong>Causa:</strong> Los datos de Google Sheets no están accesibles.</p>
+            <p><strong>Solución:</strong> Verifica que tu hoja de cálculo esté configurada como "Cualquier persona con el enlace puede ver".</p>
+            
+            <h4>Problema: "Respuestas no relevantes"</h4>
+            <p><strong>Causa:</strong> El sistema no reconoce las palabras clave en tu pregunta.</p>
+            <p><strong>Solución:</strong> Reformula tu pregunta usando palabras clave como "temperatura", "humedad", "presión", "lluvia", etc.</p>
+          </div>
+        </div>
+        
+        <div class="tab-content" id="diagnostic-tab">
+          <h4>Diagnóstico del sistema</h4>
+          <p>Este panel te ayudará a identificar y resolver problemas con tu configuración.</p>
+          
+          <div class="diagnostic-panel">
+            <div class="diagnostic-title">Estado de conexión a Google Sheets</div>
+            <div class="diagnostic-item">
+              <span class="diagnostic-status status-good" id="sheets-status"></span>
+              <span id="sheets-status-text">Verificando...</span>
+            </div>
+            <div class="diagnostic-detail" id="sheets-detail">Intentando conectar con Google Sheets...</div>
+            
+            <div class="diagnostic-title">Estado del sistema de respuestas</div>
+            <div class="diagnostic-item">
+              <span class="diagnostic-status status-good" id="system-status"></span>
+              <span id="system-status-text">Verificando...</span>
+            </div>
+            <div class="diagnostic-detail" id="system-detail">Analizando el sistema de respuestas...</div>
+            
+            <div class="diagnostic-title">Formato de datos</div>
+            <div class="diagnostic-item">
+              <span class="diagnostic-status status-good" id="format-status"></span>
+              <span id="format-status-text">Verificando...</span>
+            </div>
+            <div class="diagnostic-detail" id="format-detail">Analizando el formato de tus datos...</div>
+            
+            <div id="sample-data" class="data-sample" style="display: none;">
+              <strong>Datos de muestra:</strong>
+              <pre id="sample-data-content"></pre>
+            </div>
+            
+            <button class="diagnostic-btn" id="run-diagnostic">Ejecutar diagnóstico completo</button>
+          </div>
+          
+          <div class="troubleshooting" id="troubleshooting-suggestions" style="display: none;">
+            <h4>Soluciones recomendadas</h4>
+            <div id="solutions-container"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Script del chatbot -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const chatMessages = document.getElementById('chat-messages');
+      const userInput = document.getElementById('user-input');
+      const sendButton = document.getElementById('send-button');
+      const suggestions = document.querySelectorAll('.suggestion');
+      const connectionStatus = document.createElement('div');
+      const iaSettingsBtn = document.getElementById('ia-settings-btn');
+      const iaSettingsPanel = document.getElementById('ia-settings-panel');
+      const tabButtons = document.querySelectorAll('.tab-button');
+      const tabContents = document.querySelectorAll('.tab-content');
+      
+      // Elementos de diagnóstico
+      const runDiagnosticBtn = document.getElementById('run-diagnostic');
+      const sheetsStatus = document.getElementById('sheets-status');
+      const sheetsStatusText = document.getElementById('sheets-status-text');
+      const sheetsDetail = document.getElementById('sheets-detail');
+      const systemStatus = document.getElementById('system-status');
+      const systemStatusText = document.getElementById('system-status-text');
+      const systemDetail = document.getElementById('system-detail');
+      const formatStatus = document.getElementById('format-status');
+      const formatStatusText = document.getElementById('format-status-text');
+      const formatDetail = document.getElementById('format-detail');
+      const sampleData = document.getElementById('sample-data');
+      const sampleDataContent = document.getElementById('sample-data-content');
+      const troubleshootingSuggestions = document.getElementById('troubleshooting-suggestions');
+      const solutionsContainer = document.getElementById('solutions-container');
+      
+      // Agregar indicador de estado de conexión
+      connectionStatus.className = "connection-status disconnected";
+      connectionStatus.innerHTML = `<span class="status-dot"></span> Conexión con Google Sheets: Desconectado`;
+      chatMessages.parentNode.insertBefore(connectionStatus, chatMessages);
+      
+      // URL que se usa en analisis.html para conectarse a Google Sheets
+      const SHEETS_URL = "https://docs.google.com/spreadsheets/d/1k1EBYptoYHVg982yqQdPF9Glt0PJAUZWMW0J-z4ps-4/gviz/tq?tqx=out:csv&sheet=Sheet1";
+      
+      // Variable para almacenar los datos meteorológicos
+      let weatherData = [];
+      let connectionError = null;
+      let sheetsConnected = false;
+      let diagnosticRunning = false;
+      
+      // Mostrar/ocultar panel de configuración
+      iaSettingsBtn.addEventListener('click', () => {
+        iaSettingsPanel.classList.toggle('active');
+      });
+      
+      // Cambiar entre pestañas
+      tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const tabName = button.getAttribute('data-tab');
+          
+          // Actualizar botones
+          tabButtons.forEach(btn => btn.classList.remove('active'));
+          button.classList.add('active');
+          
+          // Actualizar contenido
+          tabContents.forEach(content => content.classList.remove('active'));
+          document.getElementById(`${tabName}-tab`).classList.add('active');
+          
+          // Si es la pestaña de diagnóstico, ejecutar diagnóstico automático
+          if (tabName === 'diagnostic' && !diagnosticRunning) {
+            runDiagnostic();
+          }
+        });
+      });
+      
+      // Inicializar estado del sistema
+      systemStatus.textContent = "Sistema activo";
+      systemStatus.className = "ia-status connected";
+      systemStatusText.textContent = "Sistema activo";
+      systemStatusText.className = "diagnostic-status status-good";
+      systemDetail.textContent = "El sistema de respuestas inteligentes está funcionando correctamente.";
+      
+      // Función auxiliar para analizar una línea de CSV con comillas
+      function parseCSVLine(line) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        
+        result.push(current.trim());
+        return result;
+      }
+      
+      // Cargar los datos meteorológicos
+      async function loadWeatherData() {
+        try {
+          connectionStatus.className = "connection-status";
+          connectionStatus.innerHTML = `<span class="status-dot"></span> Conexión con Google Sheets: Conectando...`;
+          
+          const response = await fetch(SHEETS_URL);
+          
+          if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+          }
+          
+          const csvData = await response.text();
+          
+          // Procesar CSV
+          weatherData = parseCSV(csvData);
+          
+          // Actualizar estado de conexión
+          connectionStatus.className = "connection-status connected";
+          connectionStatus.innerHTML = `<span class="status-dot" style="background: #4CAF50;"></span> Conexión con Google Sheets: Conectado (${weatherData.length} registros)`;
+          
+          sheetsConnected = true;
+          
+          // Mostrar mensaje en el chat si es la primera carga
+          if (weatherData.length > 0) {
+            const latestData = weatherData[weatherData.length - 1];
+            let time = "";
+            
+            try {
+              time = new Date(latestData.fecha).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            } catch (e) {
+              time = "desconocido";
+            }
+            
+            addMessage(`Datos meteorológicos actualizados a las ${time}. ` +
+                      `¿En qué puedo ayudarte?`, false);
+          } else {
+            addMessage("⚠️ Se cargaron los datos pero no se encontraron registros. " +
+                      "Verifica que tu hoja de cálculo contenga datos válidos.", false);
+          }
+        } catch (error) {
+          connectionError = error;
+          sheetsConnected = false;
+          console.error("❌ Error al cargar datos meteorológicos:", error);
+          
+          // Actualizar estado de conexión
+          connectionStatus.className = "connection-status disconnected";
+          connectionStatus.innerHTML = `<span class="status-dot" style="background: #F44336;"></span> Conexión con Google Sheets: Error`;
+          
+          addMessage("⚠️ No se pudieron cargar los datos meteorológicos. " +
+                    "Verifica tu conexión o intenta más tarde.", false);
+        }
+      }
+      
+      // Parsear CSV a JSON - CORREGIDO PARA MANEJAR COMILLAS EN LOS ENCABEZADOS
+      function parseCSV(csv) {
+        const lines = csv.split('\n');
+        let headersLine = lines[0].trim();
+        let headers = [];
+        
+        // Detectar si los encabezados tienen comillas
+        if (headersLine.includes('"') || headersLine.includes("'")) {
+          // Es un CSV con comillas y comas como separador
+          headers = parseCSVLine(headersLine);
+        } else {
+          // Es un TSV con tabulaciones
+          headers = headersLine.split('\t');
+        }
+        
+        // Limpiar los encabezados (eliminar comillas y espacios)
+        headers = headers.map(header => 
+          header.replace(/["']/g, '').trim().toLowerCase()
+        );
+        
+        const result = [];
+        
+        for (let i = 1; i < lines.length; i++) {
+          if (!lines[i].trim()) continue; // Saltar líneas vacías
+          
+          let currentLine;
+          if (lines[i].includes('"') || lines[i].includes(',')) {
+            // Si la línea tiene comillas o comas, es CSV
+            currentLine = parseCSVLine(lines[i]);
+          } else {
+            // Si no, es TSV
+            currentLine = lines[i].split('\t');
+          }
+          
+          // Limpiar los valores (eliminar comillas)
+          currentLine = currentLine.map(value => 
+            value.replace(/["']/g, '').trim()
+          );
+          
+          if (currentLine.length === headers.length) {
+            const obj = {};
+            for (let j = 0; j < headers.length; j++) {
+              // Corregir valores con formato incorrecto (ej. "07.06" en lugar de "7.06")
+              let value = currentLine[j];
+              if (/^\d{2}\.\d{2}$/.test(value) && value.startsWith('0')) {
+                value = value.replace(/^0/, '');
+              }
+              
+              obj[headers[j]] = value;
+            }
+            result.push(obj);
+          } else if (currentLine.length > 1) {
+            console.warn(`Línea con formato incorrecto (esperado ${headers.length} campos, encontrado ${currentLine.length}):`, currentLine);
+          }
+        }
+        
+        return result;
+      }
+      
+      // Ejecutar diagnóstico completo
+      function runDiagnostic() {
+        diagnosticRunning = true;
+        
+        // Actualizar estado de Google Sheets
+        sheetsStatus.className = "diagnostic-status status-warning";
+        sheetsStatusText.textContent = "Verificando...";
+        sheetsDetail.textContent = "Intentando conectar con Google Sheets...";
+        
+        // Actualizar estado del sistema
+        systemStatus.className = "diagnostic-status status-good";
+        systemStatusText.textContent = "Sistema activo";
+        systemDetail.textContent = "El sistema de respuestas inteligentes está funcionando correctamente.";
+        
+        // Actualizar estado de formato
+        formatStatus.className = "diagnostic-status status-warning";
+        formatStatusText.textContent = "Verificando...";
+        formatDetail.textContent = "Analizando el formato de tus datos...";
+        
+        // Ejecutar diagnóstico de Google Sheets
+        fetch(SHEETS_URL)
+          .then(response => {
+            if (response.ok) {
+              sheetsStatus.className = "diagnostic-status status-good";
+              sheetsStatusText.textContent = "Conexión establecida";
+              sheetsDetail.textContent = "Se pudo conectar correctamente con Google Sheets.";
+              
+              // Obtener y analizar los datos
+              return response.text();
+            } else {
+              throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+          })
+          .then(csvData => {
+            // Analizar el formato de los datos
+            const testWeatherData = parseCSV(csvData);
+            
+            if (testWeatherData.length > 0) {
+              sheetsStatus.className = "diagnostic-status status-good";
+              sheetsStatusText.textContent = `Conectado (${testWeatherData.length} registros)`;
+              sheetsDetail.textContent = "Se cargaron los datos correctamente.";
+              
+              // Mostrar datos de muestra
+              sampleData.style.display = 'block';
+              sampleDataContent.textContent = JSON.stringify(testWeatherData[0], null, 2);
+              
+              // Verificar formato de los datos
+              const requiredFields = ['fecha', 'temperatura', 'humedad', 'presion'];
+              let missingFields = [];
+              
+              for (const field of requiredFields) {
+                if (!testWeatherData[0].hasOwnProperty(field)) {
+                  missingFields.push(field);
+                }
+              }
+              
+              if (missingFields.length === 0) {
+                formatStatus.className = "diagnostic-status status-good";
+                formatStatusText.textContent = "Formato correcto";
+                formatDetail.textContent = "Todos los campos requeridos están presentes.";
+              } else {
+                formatStatus.className = "diagnostic-status status-error";
+                formatStatusText.textContent = "Formato incorrecto";
+                formatDetail.textContent = `Faltan los siguientes campos: ${missingFields.join(', ')}`;
+              }
+            } else {
+              sheetsStatus.className = "diagnostic-status status-error";
+              sheetsStatusText.textContent = "Sin datos";
+              sheetsDetail.textContent = "Se conectó con Google Sheets pero no se encontraron datos.";
+            }
+          })
+          .catch(error => {
+            sheetsStatus.className = "diagnostic-status status-error";
+            sheetsStatusText.textContent = "Error de conexión";
+            sheetsDetail.textContent = `No se pudo conectar: ${error.message}`;
+          });
+        
+        // Generar sugerencias de solución
+        setTimeout(() => {
+          generateTroubleshootingSuggestions();
+          diagnosticRunning = false;
+        }, 2000);
+      }
+      
+      // Generar sugerencias de solución basadas en el diagnóstico
+      function generateTroubleshootingSuggestions() {
+        const solutions = [];
+        
+        // Problemas con Google Sheets
+        if (sheetsStatus.className.includes('status-error')) {
+          solutions.push({
+            title: "Problema con Google Sheets",
+            description: "No se puede conectar con tus datos meteorológicos",
+            solution: "Verifica que tu hoja de cálculo esté configurada como 'Cualquier persona con el enlace puede ver'. Ve a Compartir > Configuración > 'Cualquier persona con el enlace' > 'Ver'."
+          });
+        }
+        
+        // Problemas con formato de datos
+        if (formatStatus.className.includes('status-error')) {
+          solutions.push({
+            title: "Problema con el formato de datos",
+            description: "Los campos requeridos no coinciden con lo esperado",
+            solution: "Asegúrate de que tus encabezados en Google Sheets sean: fecha, temperatura, humedad, presion, altitud, pm25, pm10, windDirection, windSpeed, gas, lluvia"
+          });
+        }
+        
+        // Mostrar sugerencias
+        if (solutions.length > 0) {
+          troubleshootingSuggestions.style.display = 'block';
+          solutionsContainer.innerHTML = '';
+          
+          solutions.forEach(solution => {
+            const solutionDiv = document.createElement('div');
+            solutionDiv.className = 'solution';
+            solutionDiv.innerHTML = `
+              <strong>${solution.title}</strong>: ${solution.description}
+              <p>${solution.solution}</p>
+            `;
+            solutionsContainer.appendChild(solutionDiv);
+          });
+        } else {
+          troubleshootingSuggestions.style.display = 'none';
+        }
+      }
+      
+      // Ejecutar diagnóstico al hacer clic en el botón
+      runDiagnosticBtn.addEventListener('click', runDiagnostic);
+      
+      // Obtener el dato más reciente
+      function getLatestData() {
+        if (weatherData.length === 0) return null;
+        return weatherData[weatherData.length - 1];
+      }
+      
+      // Obtener datos históricos para análisis
+      function getHistoricalData(hours = 24) {
+        if (weatherData.length === 0) return [];
+        
+        const now = new Date();
+        const cutoffDate = new Date(now);
+        cutoffDate.setHours(cutoffDate.getHours() - hours);
+        
+        return weatherData.filter(data => {
+          try {
+            const dataDate = new Date(data.fecha);
+            return dataDate >= cutoffDate;
+          } catch (e) {
+            return false; // Ignorar registros con fechas inválidas
+          }
+        });
+      }
+      
+      // Función para añadir un mensaje al chat
+      function addMessage(text, isUser = false) {
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('message');
+        messageDiv.classList.add(isUser ? 'user' : 'bot');
+        
+        const now = new Date();
+        const timeString = now.getHours().toString().padStart(2, '0') + 
+                          ':' + 
+                          now.getMinutes().toString().padStart(2, '0');
+        
+        messageDiv.innerHTML = `
+          ${text}
+          <div class="message-time">${timeString}</div>
+        `;
+        
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+        return messageDiv;
+      }
+      
+      // Función para mostrar el indicador de escritura
+      function showTypingIndicator() {
+        const typingDiv = document.createElement('div');
+        typingDiv.classList.add('typing-indicator');
+        typingDiv.id = 'typing-indicator';
+        typingDiv.innerHTML = `
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+        `;
+        
+        chatMessages.appendChild(typingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+        return typingDiv;
+      }
+      
+      // Función para eliminar el indicador de escritura
+      function removeTypingIndicator() {
+        const typingIndicator = document.getElementById('typing-indicator');
+        if (typingIndicator) {
+          typingIndicator.remove();
+        }
+      }
+      
+      // Sistema de respuestas inteligentes basado en reglas
+      function getSmartResponse(message, latestData) {
+        // Convertir mensaje a minúsculas para análisis
+        const lowerMessage = message.toLowerCase();
+        
+        // Si no hay datos meteorológicos
+        if (!latestData) {
+          return "⚠️ No tengo datos meteorológicos disponibles en este momento. " +
+                 "Por favor, verifica que la estación esté funcionando correctamente.";
+        }
+        
+        // Extraer valores numéricos de los datos
+        const temp = parseFloat(latestData.temperatura);
+        const humedad = parseFloat(latestData.humedad);
+        const presion = parseFloat(latestData.presion);
+        const lluvia = parseFloat(latestData.lluvia);
+        const velocidadViento = parseFloat(latestData.windspeed);
+        const direccionViento = latestData.winddirection;
+        
+        // Determinar tendencias (comparar con datos anteriores)
+        let tempTrend = "estable";
+        let humedadTrend = "estable";
+        let presionTrend = "estable";
+        
+        if (weatherData.length > 1) {
+          const previousData = weatherData[weatherData.length - 2];
+          const prevTemp = parseFloat(previousData.temperatura);
+          const prevHumedad = parseFloat(previousData.humedad);
+          const prevPresion = parseFloat(previousData.presion);
+          
+          if (temp > prevTemp) tempTrend = "subiendo";
+          else if (temp < prevTemp) tempTrend = "bajando";
+          
+          if (humedad > prevHumedad) humedadTrend = "subiendo";
+          else if (humedad < prevHumedad) humedadTrend = "bajando";
+          
+          if (presion > prevPresion) presionTrend = "subiendo";
+          else if (presion < prevPresion) presionTrend = "bajando";
+        }
+        
+        // Analizar la pregunta del usuario
+        if (lowerMessage.includes("temperatura") || lowerMessage.includes("calor") || lowerMessage.includes("frío")) {
+          let response = `La temperatura actual es de ${temp}°C. `;
+          
+          if (temp > 30) {
+            response += "Hace bastante calor. ";
+          } else if (temp > 20) {
+            response += "La temperatura es agradable. ";
+          } else if (temp > 10) {
+            response += "Hace fresco. ";
+          } else {
+            response += "Hace frío. ";
+          }
+          
+          response += `La temperatura ha estado ${tempTrend} últimamente.`;
+          return response;
+        }
+        
+        if (lowerMessage.includes("humedad") || lowerMessage.includes("húmedo")) {
+          let response = `La humedad actual es del ${humedad}%. `;
+          
+          if (humedad > 70) {
+            response += "El aire está muy húmedo. ";
+          } else if (humedad > 50) {
+            response += "La humedad es moderada. ";
+          } else {
+            response += "El aire está seco. ";
+          }
+          
+          response += `La humedad ha estado ${humedadTrend} últimamente.`;
+          return response;
+        }
+        
+        if (lowerMessage.includes("presión") || lowerMessage.includes("presion")) {
+          let response = `La presión atmosférica actual es de ${presion} hPa. `;
+          
+          if (presion > 1020) {
+            response += "La presión es alta, lo que generalmente indica buen tiempo. ";
+          } else if (presion > 1000) {
+            response += "La presión es normal. ";
+          } else {
+            response += "La presión es baja, lo que podría indicar mal tiempo. ";
+          }
+          
+          response += `La presión ha estado ${presionTrend} últimamente.`;
+          return response;
+        }
+        
+        if (lowerMessage.includes("lluvia") || lowerMessage.includes("llover") || lowerMessage.includes("agua")) {
+          if (lluvia > 0) {
+            return `Está lloviendo actualmente (${lluvia} mm). Considera usar paraguas.`;
+          } else {
+            return `No está lloviendo en este momento. `;
+          }
+        }
+        
+        if (lowerMessage.includes("viento") || lowerMessage.includes("velocidad") || lowerMessage.includes("dirección")) {
+          let response = `La velocidad del viento es de ${velocidadViento} km/h desde la dirección ${direccionViento}. `;
+          
+          if (velocidadViento > 30) {
+            response += "Hay viento fuerte. ";
+          } else if (velocidadViento > 15) {
+            response += "Hay brisa moderada. ";
+          } else {
+            response += "Hay poca brisa. ";
+          }
+          
+          return response;
+        }
+        
+        if (lowerMessage.includes("clima") || lowerMessage.includes("tiempo") || lowerMessage.includes("atmósfera")) {
+          let response = `El clima actual es: `;
+          
+          // Combinar varios factores
+          if (temp > 25 && humedad > 60) {
+            response += "caluroso y húmedo. ";
+          } else if (temp > 25 && humedad < 40) {
+            response += "caluroso y seco. ";
+          } else if (temp < 15 && humedad > 60) {
+            response += "frío y húmedo. ";
+          } else if (temp < 15 && humedad < 40) {
+            response += "frío y seco. ";
+          } else {
+            response += "agradable. ";
+          }
+          
+          response += `Temperatura: ${temp}°C, Humedad: ${humedad}%, Presión: ${presion} hPa. `;
+          
+          if (presion < 1000) {
+            response += "La presión baja sugiere que podría cambiar el tiempo.";
+          } else if (presion > 1020) {
+            response += "La presión alta indica que el buen tiempo probablemente continuará.";
+          }
+          
+          return response;
+        }
+        
+        if (lowerMessage.includes("mañana") || lowerMessage.includes("futuro") || lowerMessage.includes("próximamente")) {
+          let response = `Basado en los datos actuales, puedo hacer una predicción aproximada: `;
+          
+          // Predicción simple basada en tendencias
+          if (presionTrend === "bajando" && humedadTrend === "subiendo") {
+            response += "Es probable que el tiempo empeore, posiblemente con lluvia.";
+          } else if (presionTrend === "subiendo" && humedadTrend === "bajando") {
+            response += "El tiempo probablemente mejorará.";
+          } else {
+            response += "El tiempo probablemente se mantendrá similar.";
+          }
+          
+          return response;
+        }
+        
+        // Respuesta predeterminada para preguntas no reconocidas
+        return "Entiendo tu pregunta, pero necesito más detalles específicos sobre el clima. " +
+               "Puedo ayudarte con información sobre temperatura, humedad, presión, viento o lluvia.";
+      }
+      
+      // Función para procesar el mensaje del usuario
+      async function processUserMessage(message) {
+        // Añadir el mensaje del usuario
+        addMessage(message, true);
+        
+        // Limpiar el input
+        userInput.value = '';
+        
+        // Mostrar indicador de escritura
+        const typingIndicator = showTypingIndicator();
+        
+        // Obtener el dato más reciente
+        const latestData = getLatestData();
+        
+        try {
+          // Generar respuesta usando el sistema inteligente basado en reglas
+          const response = getSmartResponse(message, latestData);
+          
+          // Eliminar el indicador de escritura
+          removeTypingIndicator();
+          
+          // Añadir la respuesta del bot
+          addMessage(response);
+        } catch (error) {
+          console.error("Error al procesar mensaje:", error);
+          
+          // Eliminar el indicador de escritura
+          removeTypingIndicator();
+          
+          // Mostrar mensaje de error
+          addMessage("Lo siento, hubo un problema al procesar tu pregunta. " +
+                    "Por favor, intenta nuevamente más tarde.", false);
+        }
+      }
+      
+      // Evento para enviar mensaje al hacer clic en el botón
+      sendButton.addEventListener('click', () => {
+        const message = userInput.value.trim();
+        if (message) {
+          processUserMessage(message);
+        }
+      });
+      
+      // Evento para enviar mensaje al presionar Enter
+      userInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          const message = userInput.value.trim();
+          if (message) {
+            processUserMessage(message);
+          }
+        }
+      });
+      
+      // Evento para las sugerencias
+      suggestions.forEach(suggestion => {
+        suggestion.addEventListener('click', () => {
+          const message = suggestion.textContent;
+          processUserMessage(message);
+        });
+      });
+      
+      // Enfocar el input al cargar
+      setTimeout(() => {
+        userInput.focus();
+      }, 100);
+      
+      // Cargar los datos meteorológicos al iniciar
+      loadWeatherData();
+      
+      // Botón para recargar datos
+      const reloadButton = document.createElement('button');
+      reloadButton.textContent = '↻ Recargar datos';
+      reloadButton.style.marginTop = '10px';
+      reloadButton.style.padding = '6px 12px';
+      reloadButton.style.background = 'var(--primary)';
+      reloadButton.style.color = '#000';
+      reloadButton.style.border = 'none';
+      reloadButton.style.borderRadius = '4px';
+      reloadButton.style.cursor = 'pointer';
+      
+      reloadButton.addEventListener('click', () => {
+        loadWeatherData();
+      });
+      
+      chatMessages.parentNode.appendChild(reloadButton);
+      
+      // Ejecutar diagnóstico inicial si estamos en la pestaña de diagnóstico
+      if (document.querySelector('.tab-button.active').getAttribute('data-tab') === 'diagnostic') {
+        runDiagnostic();
+      }
+    });
+  </script>
+</body>
+</html>

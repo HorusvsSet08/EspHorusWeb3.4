@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Visores STL - Caja y Tapa</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background-color: #72645b;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2rem;
+      padding: 1rem;
+    }
+    .viewer {
+      width: 80%;
+      height: 400px;
+      border: 1px solid #444;
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+    #info {
+      font-size: 14px;
+      margin-bottom: 1rem;
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "../build/three.module.js",
+        "three/addons/": "./jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+
+  <div id="info">
+    <a href="https://threejs.org" target="_blank" rel="noopener" style="color: #ffd500;">three.js</a> - Doble visor STL (Caja y Tapa)
+  </div>
+
+  <div id="viewer1" class="viewer"></div>
+  <div id="viewer2" class="viewer"></div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+
+    initViewer('viewer1', '../stl/caja.stl');
+    initViewer('viewer2', '../stl/tapa.stl');
+
+    function initViewer(containerId, stlPath) {
+      const container = document.getElementById(containerId);
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x72645b);
+      scene.fog = new THREE.Fog(0x72645b, 2, 15);
+
+      const camera = new THREE.PerspectiveCamera(35, container.clientWidth / container.clientHeight, 1, 15);
+      camera.position.set(3, 0.15, 3);
+      const cameraTarget = new THREE.Vector3(0, -0.25, 0);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.shadowMap.enabled = true;
+      container.appendChild(renderer.domElement);
+
+      // Ground
+      const plane = new THREE.Mesh(
+        new THREE.PlaneGeometry(40, 40),
+        new THREE.MeshPhongMaterial({ color: 0xcbcbcb, specular: 0x474747 })
+      );
+      plane.rotation.x = -Math.PI / 2;
+      plane.position.y = -0.5;
+      plane.receiveShadow = true;
+      scene.add(plane);
+
+      // Lights
+      scene.add(new THREE.HemisphereLight(0x8d7c7c, 0x494966, 3));
+      addShadowedLight(scene, 1, 1, 1, 0xffffff, 3.5);
+      addShadowedLight(scene, 0.5, 1, -1, 0xffd500, 3);
+
+      // Load STL
+      const loader = new STLLoader();
+      loader.load(stlPath, function (geometry) {
+        const material = new THREE.MeshPhongMaterial({ color: 0xd5d5d5, specular: 0x494949, shininess: 200 });
+        const mesh = new THREE.Mesh(geometry, material);
+
+        mesh.position.set(0, -0.25, 0);
+        mesh.rotation.set(-Math.PI / 2, 0, 0);
+        mesh.scale.set(1, 1, 1);
+
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        scene.add(mesh);
+      });
+
+      // Animation
+      function animate() {
+        requestAnimationFrame(animate);
+        const timer = Date.now() * 0.0005;
+        camera.position.x = Math.cos(timer) * 3;
+        camera.position.z = Math.sin(timer) * 3;
+        camera.lookAt(cameraTarget);
+        renderer.render(scene, camera);
+      }
+
+      animate();
+
+      // Resize
+      window.addEventListener('resize', () => {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+      });
+    }
+
+    function addShadowedLight(scene, x, y, z, color, intensity) {
+      const directionalLight = new THREE.DirectionalLight(color, intensity);
+      directionalLight.position.set(x, y, z);
+      directionalLight.castShadow = true;
+      const d = 1;
+      directionalLight.shadow.camera.left = -d;
+      directionalLight.shadow.camera.right = d;
+      directionalLight.shadow.camera.top = d;
+      directionalLight.shadow.camera.bottom = -d;
+      directionalLight.shadow.camera.near = 1;
+      directionalLight.shadow.camera.far = 4;
+      directionalLight.shadow.bias = -0.002;
+      scene.add(directionalLight);
+    }
+  </script>
+</body>
+</html>
